@@ -230,7 +230,8 @@ class ImageNetExperiment():
         function. Set the 'x' argument of tf.train.piecewise_constant to
         global_step.
         3.) set 'values' to [0.01, 0.005, 0.001, 0.0005] and
-            'boundaries' to [150000, 300000, 450000] for a batch size of 256
+            'boundaries' to list(np.array([150000, 300000, 450000]).astype(np.int64)) 
+            for a batch size of 256
         4.) You will need to delete all keys except for 'func' and replace them
         with the input arguments to 
         """
