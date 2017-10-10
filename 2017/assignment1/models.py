@@ -54,7 +54,8 @@ def alexnet_model(inputs, train=True, norm=True, **kwargs):
     and so on. 
     4.) Use tf.get_variable() to create variables, while setting name='weights'
     for each kernel, and name='bias' for each bias for all conv and fc layers.
-    For the pool layers name='pool'.
+    For the pool layers name='pool'. Use the xavier initializer to initialize
+    all of your variables
 
     These steps are necessary to correctly load the pretrained alexnet model
     from the database for the second part of the assignment.
