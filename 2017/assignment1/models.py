@@ -85,22 +85,17 @@ def alexnet_model(inputs, train=True, norm=True, **kwargs):
     outputs['fc7'] = fc(outputs['fc6'],4096, dropout=dropout, bias=.1)
     outputs['fc8'] = fc(outputs['fc7'],1000, activation=None, dropout=None, bias=0)
 
+    outputs['pred'] = outputs['fc8']
+
     # provide access to kernels themselves
     for key, value in outputs.iteritems():
         outputs[key + '_kernel'] = value.weights
 
-    kernel = tf.get_variable(initializer=init,
-                            shape=[ksize[0], ksize[1], in_depth, out_depth],
-                            dtype=tf.float32,
-                            regularizer=tf.contrib.layers.l2_regularizer(weight_decay),
-                            name='weights')
-
-    # the actual conv layer takes in a kernel and uses the following to build the tf 'module'
-    conv = tf.nn.conv2d(inp, kernel,
-                        strides=strides,
-                        padding=padding)
-    output = tf.nn.bias_add(conv, biases, name=name)
-
+    # kernel = tf.get_variable(initializer=init,
+    #                         shape=[ksize[0], ksize[1], in_depth, out_depth],
+    #                         dtype=tf.float32,
+    #                         regularizer=tf.contrib.layers.l2_regularizer(weight_decay),
+    #                         name='weights')
     ### END OF YOUR CODE
 
     for k in ['conv1', 'conv2', 'conv3', 'conv4', 'conv5', 'pool1',
@@ -157,10 +152,13 @@ def conv(inp,
                             scale=None, variance_epsilon=1e-8, name='batch_norm')
     return output
 
-
-def max_pool(x, filter_height, filter_width, stride_y, stride_x, name, padding='SAME'):
-  return tf.nn.max_pool(x, ksize=[1, filter_height, filter_width, 1],
-                        strides = [1, stride_y, stride_x, 1],
+def max_pool(x, ksize, strides,  name='pool', padding='SAME'):
+  if isinstance(ksize, int):
+      ksize = [ksize, ksize]
+  if isinstance(strides, int):
+      strides = [1, strides, strides, 1]
+  return tf.nn.max_pool(x, ksize= ksize,
+                        strides = strides,
                         padding = padding, name = name)
 
 def fc(inp,
@@ -209,3 +207,10 @@ def fc(inp,
     if dropout is not None:
         output = tf.nn.dropout(output, dropout, seed=dropout_seed, name='dropout')
     return output
+
+def initializer(kind='xavier', *args, **kwargs):
+    if kind == 'xavier':
+        init = tf.contrib.layers.xavier_initializer(*args, **kwargs)
+    else:
+        init = getattr(tf, kind + '_initializer')(*args, **kwargs)
+    return init
