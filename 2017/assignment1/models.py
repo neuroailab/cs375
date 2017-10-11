@@ -66,10 +66,90 @@ def alexnet_model(inputs, train=True, norm=True, **kwargs):
     input_to_network = inputs['images']
 
     ### YOUR CODE HERE
-
+    
+    # def conv():
+    #   return outputs, kernel 
+    
+    # conv1
+    # pool1
+    # conv2
+    # pool2
+    # conv3
+    # conv4
+    # conv5
+    # pool5
+    # fc6
+    # fc7
+    # fc8
+    
+    # conv function, returns conv output and the kernel
+    # pool returns output
+    # fc returns output
+    kernel = tf.get_variable(initializer=init,
+                            shape=[ksize[0], ksize[1], in_depth, out_depth],
+                            dtype=tf.float32,
+                            regularizer=tf.contrib.layers.l2_regularizer(weight_decay),
+                            name='weights')
+    
+    # the actual conv layer takes in a kernel and uses the following to build the tf 'module'
+    conv = tf.nn.conv2d(inp, kernel,
+                        strides=strides,
+                        padding=padding)
+    output = tf.nn.bias_add(conv, biases, name=name)    
+    
     ### END OF YOUR CODE
 
     for k in ['conv1', 'conv2', 'conv3', 'conv4', 'conv5', 'pool1',
             'pool2', 'pool5', 'fc6', 'fc7', 'fc8', 'conv1_kernel', 'pred']:
         assert k in outputs, '%s was not found in outputs' % k
     return outputs, {}
+
+
+def conv(inp,
+         out_depth,
+         ksize=[3,3],
+         strides=[1,1,1,1],
+         padding='SAME',
+         kernel_init='xavier',
+         kernel_init_kwargs=None,
+         bias=0,
+         weight_decay=None,
+         activation='relu',
+         batch_norm=True,
+         name='conv'
+         ):
+
+    # assert out_shape is not None
+    if weight_decay is None:
+        weight_decay = 0.
+    if isinstance(ksize, int):
+        ksize = [ksize, ksize]
+    if kernel_init_kwargs is None:
+        kernel_init_kwargs = {}
+    in_depth = inp.get_shape().as_list()[-1]
+
+    # weights
+    init = initializer(kernel_init, **kernel_init_kwargs)
+    kernel = tf.get_variable(initializer=init,
+                            shape=[ksize[0], ksize[1], in_depth, out_depth],
+                            dtype=tf.float32,
+                            regularizer=tf.contrib.layers.l2_regularizer(weight_decay),
+                            name='weights')
+    init = initializer(kind='constant', value=bias)
+    biases = tf.get_variable(initializer=init,
+                            shape=[out_depth],
+                            dtype=tf.float32,
+                            regularizer=tf.contrib.layers.l2_regularizer(weight_decay),
+                            name='bias')
+    # ops
+    conv = tf.nn.conv2d(inp, kernel,
+                        strides=strides,
+                        padding=padding)
+    output = tf.nn.bias_add(conv, biases, name=name)
+
+    if activation is not None:
+        output = getattr(tf.nn, activation)(output, name=activation)
+    if batch_norm:
+        output = tf.nn.batch_normalization(output, mean=0, variance=1, offset=None,
+                            scale=None, variance_epsilon=1e-8, name='batch_norm')
+    return output
