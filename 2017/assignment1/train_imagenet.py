@@ -220,7 +220,7 @@ class ImageNetExperiment():
         """
         learning_rate_params defines the learning rate, decay and learning function.
 
-        You will need to EDIT this part. Replace the exponential decay 
+        You will need to this part. Replace the exponential decay 
         learning rate policy with a piecewise constant learning policy.
         ATTENTION: 
         1.) 'learning_rate', 'decay_steps', 'decay_rate' and 'staircase' are not
@@ -266,9 +266,9 @@ class ImageNetExperiment():
         have changed mongodb.conf), 'dbname', 'collname', and 'exp_id'. 
         """
         params['save_params'] = {
-            'host': localhost,
+            'host': 'localhost',
             'port': 24444,
-            'dbname': 'alexnet.files',
+            'dbname': 'imagenet',
             'collname': 'alexnet',
             'exp_id': 'experiment_1',
             'save_valid_freq': 10000,
@@ -290,11 +290,11 @@ class ImageNetExperiment():
         as in 'save_params'.
         """
         params['load_params'] = {
-            'host': EDIT_YOUR_HOST,
-            'port': EDIT_YOUR_PORT,
-            'dbname': EDIT_YOUR_DBNAME,
-            'collname': EDIT_YOUR_COLLNAME,
-            'exp_id': EDIT_YOUR_EXP_ID,
+            'host': 'localhost',
+            'port': 24444,
+            'dbname': 'imagenet',
+            'collname': 'alexnet',
+            'exp_id': 'experiment_1',
             'do_restore': False,
             'load_query': None,
         }
@@ -312,8 +312,8 @@ class ImageNetExperiment():
         You will need to EDIT this part. Implement the top1 and top5 functions
         in the respective dictionary entry.
         """
-        return {'top1': YOUR_TOP1_FUNCTION_CALL_HERE,
-                'top5': YOUR_TOP5_FUNCTION_CALL_HERE}
+        return {'top1': tf.nn.in_top_k(outputs, inputs[target], 1),
+                'top5': tf.nn.in_top_k(outputs, inputs[target], 5)}
 
 
     def subselect_tfrecords(self, path):
