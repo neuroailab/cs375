@@ -208,10 +208,15 @@ class ImageNetExperiment():
         2.) labels = outputs['labels']
             logits = outputs['pred']
         """
+        def loss_wrapper(inputs, outputs):
+            labels = outputs['labels']
+            logits = outputs['pred']
+            return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+        
         params['loss_params'] = {
             'targets': ['labels'],
             'agg_func': tf.reduce_mean,
-            'loss_per_case_func': EDIT_YOUR_LOSS_PER_CASE_FUNC_HERE,
+            'loss_per_case_func': loss_wrapper,
             'loss_per_case_func_params' : {'_outputs': 'outputs', 
                 '_targets_$all': 'inputs'},
             'loss_func_kwargs' : {},
@@ -230,18 +235,18 @@ class ImageNetExperiment():
         function. Set the 'x' argument of tf.train.piecewise_constant to
         global_step.
         3.) set 'values' to [0.01, 0.005, 0.001, 0.0005] and
-            'boundaries' to list(np.array([150000, 300000, 450000]).astype(np.int64)) 
-            for a batch size of 256
+            'boundaries' to [150000, 300000, 450000] for a batch size of 256
         4.) You will need to delete all keys except for 'func' and replace them
         with the input arguments to 
         """
+        def lr_wrapper(global_step, boundaries, values):
+            boundaries = list(np.array(boundaries,dtype=np.int64))
+            return tf.train.piecewise_constant(x=global_step, boundaries=boundaries, values=values)
         
-        params['learning_rate_params'] = {
-            'func': tf.train.exponential_decay,
-            'learning_rate': 0.01,
-            'decay_steps': ImageNetDataProvider.N_TRAIN / self.batch_size,
-            'decay_rate': 0.95,
-            'staircase': True,
+        params['learning_rate_params'] = {	
+            'func': lr_wrapper,
+            'boundaries': [150000, 300000, 450000],
+            'values': [0.01, 0.005, 0.001, 0.0005]
         }
 
         """
@@ -253,7 +258,7 @@ class ImageNetExperiment():
         """
         params['optimizer_params'] = {
             'func': optimizer.ClipOptimizer,
-            'optimizer_class': tf.train.AdamOptimizer,
+            'optimizer_class': tf.train.MomentumOptimizer,
             'clip': False,
             'momentum': .9,
         }
@@ -267,11 +272,11 @@ class ImageNetExperiment():
         have changed mongodb.conf), 'dbname', 'collname', and 'exp_id'. 
         """
         params['save_params'] = {
-            'host': EDIT_YOUR_HOST,
-            'port': EDIT_YOUR_PORT,
-            'dbname': EDIT_YOUR_DBNAME,
-            'collname': EDIT_YOUR_COLLNAME,
-            'exp_id': EDIT_YOUR_EXP_ID,
+            'host': 'localhost',
+            'port': 24444,
+            'dbname': 'assignment1',
+            'collname': 'alexnet',
+            'exp_id': '1st_experiment',
             'save_valid_freq': 10000,
             'save_filters_freq': 30000,
             'cache_filters_freq': 50000,
@@ -291,12 +296,12 @@ class ImageNetExperiment():
         as in 'save_params'.
         """
         params['load_params'] = {
-            'host': EDIT_YOUR_HOST,
-            'port': EDIT_YOUR_PORT,
-            'dbname': EDIT_YOUR_DBNAME,
-            'collname': EDIT_YOUR_COLLNAME,
-            'exp_id': EDIT_YOUR_EXP_ID,
-            'do_restore': False,
+            'host': 'localhost',
+            'port': 24444,
+            'dbname': 'assignment1',
+            'collname': 'alexnet',
+            'exp_id': '1st_experiment',
+            'do_restore': True,
             'load_query': None,
         }
 
@@ -314,8 +319,8 @@ class ImageNetExperiment():
         You will need to EDIT this part. Implement the top1 and top5 functions
         in the respective dictionary entry.
         """
-        return {'top1': YOUR_TOP1_FUNCTION_CALL_HERE,
-                'top5': YOUR_TOP5_FUNCTION_CALL_HERE}
+        return {'top1': lambda outputs, inputs: tf.nn.in_top_k(predictions, targets, k=1),
+                'top5': lambda outputs, inputs: tf.nn.in_top_k(predictions, targets, k=5)}
 
 
     def subselect_tfrecords(self, path):
