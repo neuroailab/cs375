@@ -75,7 +75,7 @@ class ImageNetExperiment():
         """
         batch_size = 256
         data_path = '/datasets/TFRecord_Imagenet_standard'
-        seed = 0
+        seed = 6
         crop_size = 227
         thres_loss = 1000
         n_epochs = 90
@@ -238,7 +238,7 @@ class ImageNetExperiment():
         
         params['learning_rate_params'] = {
             'func': tf.train.piecewise_constant,
-            'x': global_step,
+            'x': tf.Variable(0, trainable=False),
             'boundaries': list(np.array([150000, 300000, 450000]).astype(np.int64)),
             'values': [0.01, 0.005, 0.001, 0.0005]
         }
