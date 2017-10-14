@@ -55,7 +55,10 @@ def alexnet_model(inputs, train=True, norm=True, **kwargs):
     4.) Use tf.get_variable() to create variables, while setting name='weights'
     for each kernel, and name='bias' for each bias for all conv and fc layers.
     For the pool layers name='pool'. Use the xavier initializer to initialize
-    all of your variables
+    your conv kernel, and the truncated normal initializer for the fc layers.
+    The biases of the conv and fc layers should be initalized with a constant 
+    initializer to 0, except for conv2, fc6, and fc7 whose biases should be
+    initialized to 0.1.
 
     These steps are necessary to correctly load the pretrained alexnet model
     from the database for the second part of the assignment.
