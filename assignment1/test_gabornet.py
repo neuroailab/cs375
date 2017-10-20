@@ -365,7 +365,7 @@ class NeuralDataExperiment():
             'npc_validate': 0,
             'metric_screen': 'regression',
             'metric_labels': None,
-            'metric_kwargs': {'model_type': 'linear_model.LassoCV',
+            'metric_kwargs': {'model_type': 'linear_model.Lasso',
                               'model_kwargs': {}
                              },
             'labelfunc': 'rxz',
