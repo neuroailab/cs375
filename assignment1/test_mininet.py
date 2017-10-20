@@ -39,7 +39,7 @@ from tfutils import base, data, model, optimizer, utils
 
 from utils import post_process_neural_regression_msplit_preprocessed
 from dataprovider import NeuralDataProvider
-from models import alexnet_model
+from models import *
 
 
 class NeuralDataExperiment():
@@ -57,14 +57,10 @@ class NeuralDataExperiment():
 
         You will have to EDIT this part. Please set your exp_id here.
         """
-        target_layers = ['pool1', 
+        target_layers = ['conv1', 
                          'conv2', 
                          'conv3', 
-                         'conv4', 
-                         'conv5', 
-                         'pool5', 
-                         'fc6', 
-                         'fc7']
+                         'fc3']
         extraction_step = None
         exp_id = '1st_experiment'
         data_path = '/datasets/neural_data/tfrecords_with_meta'
@@ -168,7 +164,7 @@ class NeuralDataExperiment():
         assignment.
         """
         params['model_params'] = {
-            'func': alexnet_model,
+            'func': lenet_model,
         }
 
         """
@@ -184,7 +180,7 @@ class NeuralDataExperiment():
             'host': 'localhost',
             'port': 24444,
             'dbname': 'assignment1',
-            'collname': 'alexnet',
+            'collname': 'mininet',
             'exp_id': self.Config.exp_id,
             'save_to_gfs': self.Config.gfs_targets,
         }
@@ -201,7 +197,7 @@ class NeuralDataExperiment():
             'host': 'localhost',
             'port': 24444,
             'dbname': 'assignment1',
-            'collname': 'alexnet',
+            'collname': 'mininet',
             'exp_id': self.Config.exp_id,
             'do_restore': True,
             'query': {'step': self.Config.extraction_step} \

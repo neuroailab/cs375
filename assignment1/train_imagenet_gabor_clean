@@ -58,7 +58,7 @@ import numpy as np
 import tensorflow as tf
 from tfutils import base, data, model, optimizer, utils
 from dataprovider import ImageNetDataProvider
-from models import alexnet_model
+from models import gabor_model
 
 
 class ImageNetExperiment():
@@ -75,11 +75,11 @@ class ImageNetExperiment():
         """
         batch_size = 256
         data_path = '/datasets/TFRecord_Imagenet_standard'
-        seed = 0
+        seed = 5
         crop_size = 227
         thres_loss = 1000
-        n_epochs = 90
-        train_steps = ImageNetDataProvider.N_TRAIN / batch_size * n_epochs
+        n_epochs = 0
+        train_steps = 1#ImageNetDataProvider.N_TRAIN / batch_size * n_epochs
         val_steps = np.ceil(ImageNetDataProvider.N_VAL / batch_size).astype(int)
 
 
@@ -191,7 +191,7 @@ class ImageNetExperiment():
         switch out alexnet_model with your model function.
         """
         params['model_params'] = {
-            'func': alexnet_model,
+            'func': gabor_model,
         }
 
         """
@@ -275,13 +275,13 @@ class ImageNetExperiment():
             'host': 'localhost',
             'port': 24444,
             'dbname': 'assignment1',
-            'collname': 'alexnet',
-            'exp_id': '2nd_experiment',
+            'collname': 'gabornet',
+            'exp_id': '1st_experiment',
             'save_valid_freq': 10000,
             'save_filters_freq': 30000,
             'cache_filters_freq': 50000,
             'save_metrics_freq': 200,
-            'save_initial_filters' : False,
+            'save_initial_filters' : True,
             'save_to_gfs': [],
         }
 
@@ -299,8 +299,8 @@ class ImageNetExperiment():
             'host': 'localhost',
             'port': 24444,
             'dbname': 'assignment1',
-            'collname': 'alexnet',
-            'exp_id': '2nd_experiment',
+            'collname': 'gabornet',
+            'exp_id': '1st_experiment',
             'do_restore': True,
             'load_query': None,
         }

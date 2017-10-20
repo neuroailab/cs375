@@ -58,7 +58,7 @@ import numpy as np
 import tensorflow as tf
 from tfutils import base, data, model, optimizer, utils
 from dataprovider import ImageNetDataProvider
-from models import alexnet_model
+from models import lenet_model
 
 
 class ImageNetExperiment():
@@ -191,7 +191,7 @@ class ImageNetExperiment():
         switch out alexnet_model with your model function.
         """
         params['model_params'] = {
-            'func': alexnet_model,
+            'func': lenet_model,
         }
 
         """
@@ -209,9 +209,7 @@ class ImageNetExperiment():
             logits = outputs['pred']
         """
         def loss_wrapper(inputs, outputs):
-            labels = outputs['labels']
-            logits = outputs['pred']
-            return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+            return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=outputs['labels'], logits=outputs['pred'])
         
         params['loss_params'] = {
             'targets': ['labels'],
@@ -275,11 +273,11 @@ class ImageNetExperiment():
             'host': 'localhost',
             'port': 24444,
             'dbname': 'assignment1',
-            'collname': 'alexnet',
-            'exp_id': '2nd_experiment',
-            'save_valid_freq': 10000,
-            'save_filters_freq': 30000,
-            'cache_filters_freq': 50000,
+            'collname': 'mininet',
+            'exp_id': '1st_experiment',
+            'save_valid_freq': 100,
+            'save_filters_freq': 10000,
+            'cache_filters_freq': 20000,
             'save_metrics_freq': 200,
             'save_initial_filters' : False,
             'save_to_gfs': [],
@@ -299,8 +297,8 @@ class ImageNetExperiment():
             'host': 'localhost',
             'port': 24444,
             'dbname': 'assignment1',
-            'collname': 'alexnet',
-            'exp_id': '2nd_experiment',
+            'collname': 'mininet',
+            'exp_id': '1st_experiment',
             'do_restore': True,
             'load_query': None,
         }
