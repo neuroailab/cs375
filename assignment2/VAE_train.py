@@ -12,6 +12,7 @@ Good luck with assigment 2!
 
 import os
 import numpy as np
+from VAE_models import VAE, VAE_loss, VAE_validation
 import tensorflow as tf
 from tfutils import base, data, model, optimizer, utils
 from dataprovider import CIFAR10DataProvider
@@ -28,7 +29,7 @@ class CIFAR10Experiment():
         """
         batch_size = 256
         data_path = '/datasets/cifar10/tfrecords'
-        seed = 0
+        seed = 5
         crop_size = 24
         thres_loss = 1000000000000000
         n_epochs = 60
@@ -73,6 +74,20 @@ class CIFAR10Experiment():
                 'shuffle_seed': self.Config.seed,
                 'n_threads': 4,
             },
+            'queue_params': {
+                'queue_type': 'random',
+                'batch_size': self.Config.batch_size,
+                'seed': self.Config.seed,
+                'capacity': self.Config.batch_size * 10,
+                'min_after_dequeue': self.Config.batch_size * 5,
+            },
+            'targets': {
+                'func': self.return_outputs,
+                'targets': [],
+            },
+            'num_steps': self.Config.train_steps,
+            'thres_loss': self.Config.thres_loss,
+            'validate_first': False,
         }
 
         """
@@ -99,6 +114,17 @@ class CIFAR10Experiment():
                     'shuffle_seed': self.Config.seed,
                     'n_threads': 4,
                 },
+                'queue_params': {
+                    'queue_type': 'fifo',
+                    'batch_size': self.Config.batch_size,
+                    'seed': self.Config.seed,
+                    'capacity': self.Config.batch_size * 10,
+                    'min_after_dequeue': self.Config.batch_size * 5,
+                },
+                'targets': { 'func': VAE_validation},
+                'num_steps': self.Config.val_steps,
+                'agg_func': self.agg_mean, 
+                'online_agg_func': self.online_agg_mean,
             }
         }
 
@@ -108,24 +134,37 @@ class CIFAR10Experiment():
         the prediction of the model.
         """
         params['model_params'] = {
+            'func': VAE
         }
 
         """
         loss_params defines your training loss.
         """
         params['loss_params'] = {
+            'targets': ['images'],
+            'loss_per_case_func': VAE_loss,
+            'loss_per_case_func_params' : {'_outputs': 'outputs', 
+                '_targets_$all': 'inputs'},
+            'agg_func': tf.reduce_mean
         }
 
         """
         learning_rate_params defines the learning rate, decay and learning function.
         """
         params['learning_rate_params'] = {
+            'learning_rate': 5e-4,
+            'decay_steps': 100,
+            'decay_rate': 0.95,
+            'staircase': True,
         }
 
         """
         optimizer_params defines the optimizer.
         """
         params['optimizer_params'] = {
+            'func': optimizer.ClipOptimizer,
+            'optimizer_class': tf.train.AdamOptimizer,
+            'clip': False,
         }
 
         """
@@ -133,16 +172,79 @@ class CIFAR10Experiment():
         in the database.
         """
         params['save_params'] = {
+            'host': 'localhost',
+            'port': 24444,
+            'dbname': 'assignment2',
+            'collname': 'VAE',
+            'exp_id': '1st_experiment',
+            'save_valid_freq': 1000,
+            'save_filters_freq': 2000,
+            'cache_filters_freq': 5000,
+            'save_metrics_freq': 2000,
+            'save_initial_filters' : False,
+            'save_to_gfs': []
         }
 
         """
         load_params defines how and if a model should be restored from the database.
         """
         params['load_params'] = {
+            'host': 'localhost',
+            'port': 24444,
+            'dbname': 'assignment2',
+            'collname': 'VAE',
+            'exp_id': '1st_experiment',
+            'do_restore': False,
+            'load_query': None,
         }
 
         return params
 
+    def agg_mean(self, results):
+        for k in results:
+            if k in ['pred', 'gt']:
+                results[k] = results[k][0]
+            elif k is 'total_loss':
+                results[k] = np.mean(results[k])
+            else:
+                raise KeyError('Unknown target')
+        return results
+
+    
+    def subselect_tfrecords(self, path):
+        """
+        Illustrates how to subselect files for training or validation
+        """
+        all_filenames = os.listdir(path)
+        rng = np.random.RandomState(seed=SEED)
+        rng.shuffle(all_filenames)
+        return [os.path.join(path, fn) for fn in all_filenames
+                if fn.endswith('.tfrecords')]
+
+    def return_outputs(self, inputs, outputs, targets, **kwargs):
+        """
+        Illustrates how to extract desired targets from the model
+        """
+        retval = {}
+        for target in targets:
+            retval[target] = outputs[target]
+        return retval
+    
+    
+    def online_agg_mean(self, agg_res, res, step):
+        """
+        Appends the mean value for each key
+        """
+        if agg_res is None:
+            agg_res = {k: [] for k in res}
+        for k, v in res.items():
+            if k in ['pred', 'gt']:
+                value = v
+            else:
+                value = np.mean(v)
+            agg_res[k].append(value)
+        return agg_res
+    
 if __name__ == '__main__':
     """
     Illustrates how to run the configured model using tfutils
