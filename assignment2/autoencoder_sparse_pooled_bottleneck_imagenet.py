@@ -38,7 +38,7 @@ from dldata.metrics.utils import compute_metric_base
 from tfutils import base, data, model, optimizer, utils
 
 from dataprovider import ImageNetDataProvider
-from autoencoder_shallow_bottleneck_model import ae_model, ae_model_sparse
+from pooledBottleneck_model import pBottleneckSparse_model, pbottleSparse_loss
 
 class ImageNetClassificationExperiment():
     """
@@ -55,7 +55,7 @@ class ImageNetClassificationExperiment():
 
         You will have to EDIT this part. Please set your exp_id here.
         """
-        target_layers=[ 'relu']
+        target_layers=[ 'deconv2']
         extraction_step = None
         exp_id = '1st_experiment'
         data_path = '/datasets/TFRecord_Imagenet_standard'
@@ -135,7 +135,7 @@ class ImageNetClassificationExperiment():
         assignment.
         """
         params['model_params'] = {
-            'func': ae_model_sparse,
+            'func': pBottleneckSparse_model,
         }
 
         """
@@ -151,7 +151,7 @@ class ImageNetClassificationExperiment():
             'host': '35.199.154.71',
             'port': 24444,
             'dbname': 'assignment2',
-            'collname': 'ae_sb_in',
+            'collname': 'pooled_bottleneckSparse',
             'exp_id': self.Config.exp_id, 
             'save_to_gfs': self.Config.gfs_targets,
         }
@@ -168,7 +168,7 @@ class ImageNetClassificationExperiment():
             'host': '35.199.154.71',
             'port': 24444,
             'dbname': 'assignment2',
-            'collname': 'ae_sb_in',
+            'collname': 'pooled_bottleneckSparse',
             'exp_id': self.Config.exp_id,
             'do_restore': True,
             'query': {'step': self.Config.extraction_step} \

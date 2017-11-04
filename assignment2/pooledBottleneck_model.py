@@ -100,7 +100,7 @@ def pBottleneckSparse_model(inputs, train=True, norm=True, **kwargs):
                                   initializer=tf.contrib.layers.xavier_initializer(), name='weights')
         deconvRegularizer = tf.nn.l2_loss(deconvweights)
         deconv = tf.nn.conv2d_transpose(outputs['pool1'], deconvweights, 
-         [256, 24, 24, 3], [1, 12, 12, 1], padding='VALID', name=None)
+         outputs['input'].shape, [1, 12, 12, 1], padding='VALID', name=None)
         # assign layers to output
         outputs['deconv2'] = deconv
         outputs['deconvweights'] = deconvweights

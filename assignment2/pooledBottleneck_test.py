@@ -277,8 +277,9 @@ class NeuralDataExperiment():
         else:
             selection = {'var': variability}
         results = {}
-        categories = sorted(np.unique(meta['category']))
-        for category in categories[1]:
+        #categories = sorted(np.unique(meta['category']))
+        #for category in categories[1]:
+        for categor in sorted(np.unique(meta['category'])):
             selection['category'] = category
             category_eval_spec = {
                 'npc_train': None,
