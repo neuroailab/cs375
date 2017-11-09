@@ -13,7 +13,7 @@ import copy
 train_net = True
 # toggle this to train on whitenoise or naturalscene data
 stim_type = 'whitenoise'
-# stim_type = 'naturalscene'
+#stim_type = 'naturalscene'
 # Figure out the hostname
 host = os.uname()[1]
 if True: #'neuroaicluster' in host:
@@ -114,44 +114,6 @@ def ln(inputs, train=True, prefix=MODEL_PREFIX, devices=DEVICES, num_gpus=NUM_GP
 
     return out, params
 
-def dense_(inputs, shape, activation=tf.nn.softplus):
-    """
-    Args:
-        shape: [input, output]
-    """
-    weights = tf.get_variable(shape=shape, dtype=tf.float32,
-                              initializer=tf.random_normal_initializer(stddev=0.05),
-                              regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                              name='weights')
-    biases = tf.get_variable('biases', [shape[1]], tf.float32, tf.zeros_initializer())
-    FC = tf.nn.xw_plus_b(inputs, weights, biases, name='FC')
-    if activation is not None:
-        out = activation(FC)
-    else:
-        out = FC
-    return out
-
-def conv_(inp, conv_shape, stride, padding='SAME', reg=None):
-    if reg is not None:
-        weights = tf.get_variable(shape=conv_shape, dtype=tf.float32,
-                                  initializer=tf.contrib.layers.xavier_initializer(),
-                                  regularizer=tf.contrib.layers.l2_regularizer(reg),
-                                  name='weights')
-    else:
-        weights = tf.get_variable(shape=conv_shape, dtype=tf.float32,
-                                  initializer=tf.contrib.layers.xavier_initializer(), name='weights')
-    conv = tf.nn.conv2d(inp, weights,[1, stride, stride, 1], padding=padding, name='conv')
-    biases = tf.get_variable(initializer=tf.zeros_initializer(), shape=[conv_shape[3]], dtype=tf.float32, name='bias')
-    out = tf.nn.bias_add(conv, biases)
-    return out, weights
-
-def gaussian_noise_(input_layer, std):
-    noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32) 
-    return input_layer + noise
-
-def relu_(inp):
-    return tf.nn.relu(inp)
-
 def cnn(inputs, train=True, prefix=MODEL_PREFIX, devices=DEVICES, num_gpus=NUM_GPUS, seed=0, cfg_final=None):
     params = OrderedDict()
     batch_size = inputs['images'].get_shape().as_list()[0]
@@ -159,24 +121,7 @@ def cnn(inputs, train=True, prefix=MODEL_PREFIX, devices=DEVICES, num_gpus=NUM_G
     params['train'] = train
     params['batch_size'] = batch_size
 
-    with tf.variable_scope('conv1'):
-        temp, c1_k = conv_(inputs['images'],[15,15,40,16],1,padding='VALID')
-        if train:
-            conv1 = relu_(gaussian_noise_(temp,std=0.1))
-        else:
-            conv1 = relu_(temp)
-            
-    with tf.variable_scope('conv2'):
-        temp, c2_k = conv_(conv1,[9,9,16,8],1,padding='VALID',reg=1e-3)
-        if train:
-            conv2 = relu_(gaussian_noise_(temp,std=0.1))
-        else:
-            conv2 = relu_(temp)
-    
-    with tf.variable_scope('fc'):
-        flat_len = np.product(conv2.shape.as_list()[1:])
-        flatten = tf.reshape(conv2, [-1, flat_len]) 
-        out = dense_(flatten,[flat_len,5])
+    # implement your CNN here
 
     return out, params
 
@@ -259,7 +204,7 @@ default_params = {
             'batch_size': OUTPUT_BATCH_SIZE,
             'capacity': 11*INPUT_BATCH_SIZE,
             'min_after_dequeue': 10*INPUT_BATCH_SIZE,
-            'seed': 5,
+            'seed': 0,
         },
         'thres_loss': float('inf'),
         'num_steps': 50 * NUM_BATCHES_PER_EPOCH,  # number of steps to train
@@ -357,12 +302,12 @@ def train_cnn():
     params['save_params']['collname'] = stim_type
     params['save_params']['exp_id'] = 'trainval0'
 
-    params['model_params']['func'] = cnn
+    params['model_params'] = None # FILL IN HERE
     params['learning_rate_params']['learning_rate'] = 1e-3
     base.train_from_params(**params)
  
 if __name__ == '__main__':
-    train_cnn()
-#     train_ln()
+    # train_cnn
+    train_ln()
 
 
