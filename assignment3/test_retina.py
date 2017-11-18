@@ -2,6 +2,7 @@ from __future__ import division, print_function, absolute_import
 import os, sys
 from collections import OrderedDict
 import numpy as np
+import pymongo as pm
 
 import tensorflow as tf
 
@@ -9,57 +10,20 @@ from tfutils import base, data, model, optimizer, utils
 
 import copy
 
-# toggle this to train or to validate at the end
-train_net = True
-# toggle this to train on whitenoise or naturalscene data
-#stim_type = 'whitenoise'
-stim_type = 'naturalscene'
-# Figure out the hostname
-host = os.uname()[1]
-if True: #'neuroaicluster' in host:
-    if train_net:
-        print('In train mode...')
-        TOTAL_BATCH_SIZE = 5000
-        MB_SIZE = 5000
-        NUM_GPUS = 1
-    else:
-        print('In val mode...')
-        if stim_type == 'whitenoise':
-            TOTAL_BATCH_SIZE = 5957
-            MB_SIZE = 5957
-            NUM_GPUS = 1
-        else:
-            TOTAL_BATCH_SIZE = 5956
-            MB_SIZE = 5956
-            NUM_GPUS = 1
-
-else:
-    print("Data path not found!!")
-    exit()
-
+NUM_GPUS = 1
 if not isinstance(NUM_GPUS, list):
     DEVICES = ['/gpu:' + str(i) for i in range(NUM_GPUS)]
 else:
     DEVICES = ['/gpu:' + str(i) for i in range(len(NUM_GPUS))]
 
 MODEL_PREFIX = 'model_0'
-
+MB_SIZE = 2000
 # Data parameters
-if stim_type == 'whitenoise':
-    N_TRAIN = 323762
-    N_TEST = 5957
-else:
-    N_TRAIN = 323756
-    N_TEST = 5956
-
 INPUT_BATCH_SIZE = 1024 # queue size
-OUTPUT_BATCH_SIZE = TOTAL_BATCH_SIZE
-print('TOTAL BATCH SIZE:', OUTPUT_BATCH_SIZE)
-NUM_BATCHES_PER_EPOCH = N_TRAIN // OUTPUT_BATCH_SIZE
 IMAGE_SIZE_RESIZE = 50
 
-DATA_PATH = '/datasets/deepretina_data/tf_records/' + stim_type
-print('Data path: ', DATA_PATH)
+WN_DATA_PATH = '/datasets/deepretina_data/tf_records/whitenoise'
+NS_DATA_PATH = '/datasets/deepretina_data/tf_records/naturalscene'
 
 # data provider
 class retinaTF(data.TFRecordsParallelByFileProvider):
@@ -99,7 +63,6 @@ class retinaTF(data.TFRecordsParallelByFileProvider):
 def ln(inputs, train=True, prefix=MODEL_PREFIX, devices=DEVICES, num_gpus=NUM_GPUS, seed=0, cfg_final=None):
     params = OrderedDict()
     batch_size = inputs['images'].get_shape().as_list()[0]
-    params['stim_type'] = stim_type
     params['train'] = train
     params['batch_size'] = batch_size
 
@@ -155,7 +118,6 @@ def relu_(inp):
 def cnn(inputs, train=True, prefix=MODEL_PREFIX, devices=DEVICES, num_gpus=NUM_GPUS, seed=0, cfg_final=None):
     params = OrderedDict()
     batch_size = inputs['images'].get_shape().as_list()[0]
-    params['stim_type'] = stim_type
     params['train'] = train
     params['batch_size'] = batch_size
 
@@ -180,37 +142,34 @@ def cnn(inputs, train=True, prefix=MODEL_PREFIX, devices=DEVICES, num_gpus=NUM_G
 
     return out, params
 
-def poisson_loss(logits, labels):
-    # implement the poisson loss here
-    # return tf.nn.log_poisson_loss(labels, logits)
-    eps = 1e-8
-    return logits - labels*tf.log(logits + eps)
+def pearson_agg(results):
+    # concatenate results along batch dimension
+    true_rates = np.concatenate(results['labels'], axis=0)
+    pred_rates = np.concatenate(results['pred'], axis=0)
 
-def mean_loss_with_reg(loss):
-    return tf.reduce_mean(loss) + tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+    true_std = np.std(true_rates, axis=0)
+    pred_std = np.std(pred_rates, axis=0)
+
+    true_mean = np.mean(true_rates, axis=0)
+    pred_mean = np.mean(pred_rates, axis=0)
+
+    r = np.mean( (true_rates - true_mean) * (pred_rates - pred_mean), axis=0 ) / (true_std * pred_std)
+    return {'pearson' : r}
 
 def online_agg(agg_res, res, step):
     if agg_res is None:
         agg_res = {k: [] for k in res}
     for k, v in res.items():
-        agg_res[k].append(np.mean(v))
+        agg_res[k].append(v)
     return agg_res
 
-def loss_metric(inputs, outputs, target, **kwargs):
-    metrics_dict = {}
-    metrics_dict['poisson_loss'] = mean_loss_with_reg(poisson_loss(logits=outputs, labels=inputs[target]), **kwargs)
-    return metrics_dict
-
-def mean_losses_keep_rest(step_results):
+def return_outputs(inputs, outputs, targets, **kwargs):
+    """
+    Illustrates how to extract desired targets from the model
+    """
     retval = {}
-    keys = step_results[0].keys()
-    print('KEYS: ', keys)
-    for k in keys:
-        plucked = [d[k] for d in step_results]
-        if isinstance(k, str) and 'loss' in k:
-            retval[k] = np.mean(plucked)
-        else:
-            retval[k] = plucked
+    retval['labels'] = inputs['labels']
+    retval['pred'] = outputs
     return retval
 
 # model parameters
@@ -220,19 +179,12 @@ default_params = {
         'host': '35.199.154.71',
         'port': 24444,
         'dbname': 'deepretina',
-        'collname': stim_type,
         'exp_id': 'trainval0',
-
-        'do_save': True,
-        'save_initial_filters': True,
-        'save_metrics_freq': 50,  # keeps loss from every SAVE_LOSS_FREQ steps.
-        'save_valid_freq': 50,
-        'save_filters_freq': 50,
-        'cache_filters_freq': 50,
-        # 'cache_dir': None,  # defaults to '~/.tfutils'
     },
 
     'load_params': {
+        'host': '35.199.154.71',
+        'port': 24444,
         'do_restore': True,
         'query': None
     },
@@ -244,62 +196,19 @@ default_params = {
         'prefix': MODEL_PREFIX
     },
 
-    'train_params': {
-        'minibatch_size': MB_SIZE,
-        'data_params': {
-            'func': retinaTF,
-            'source_dirs': [os.path.join(DATA_PATH, 'images'), os.path.join(DATA_PATH, 'labels')],
-            'resize': IMAGE_SIZE_RESIZE,
-            'batch_size': INPUT_BATCH_SIZE,
-            'file_pattern': 'train*.tfrecords',
-            'n_threads': 4
-        },
-        'queue_params': {
-            'queue_type': 'random',
-            'batch_size': OUTPUT_BATCH_SIZE,
-            'capacity': 11*INPUT_BATCH_SIZE,
-            'min_after_dequeue': 10*INPUT_BATCH_SIZE,
-            'seed': 5,
-        },
-        'thres_loss': float('inf'),
-        'num_steps': 50 * NUM_BATCHES_PER_EPOCH,  # number of steps to train
-        'validate_first': True,
-    },
-
-    'loss_params': {
-        'targets': ['labels'],
-        'agg_func': mean_loss_with_reg,
-        'loss_per_case_func': poisson_loss
-    },
-
-    'learning_rate_params': {
-        'func': tf.train.exponential_decay,
-        'learning_rate': 1e-3,
-        'decay_rate': 1.0, # constant learning rate
-        'decay_steps': NUM_BATCHES_PER_EPOCH,
-        'staircase': True
-    },
-
-    'optimizer_params': {
-        'func': optimizer.ClipOptimizer,
-        'optimizer_class': tf.train.AdamOptimizer,
-        'clip': True,
-        'trainable_names': None
-    },
-
     'validation_params': {
-        'test_loss': {
+        'whitenoise_pearson': {
             'data_params': {
                 'func': retinaTF,
-                'source_dirs': [os.path.join(DATA_PATH, 'images'), os.path.join(DATA_PATH, 'labels')],
+                'source_dirs': [os.path.join(WN_DATA_PATH, 'images'), os.path.join(WN_DATA_PATH, 'labels')],
                 'resize': IMAGE_SIZE_RESIZE,
                 'batch_size': INPUT_BATCH_SIZE,
                 'file_pattern': 'test*.tfrecords',
                 'n_threads': 4
             },
             'targets': {
-                'func': loss_metric,
-                'target': 'labels',
+                'func': return_outputs,
+                'targets': ['labels'],
             },
             'queue_params': {
                 'queue_type': 'fifo',
@@ -308,22 +217,22 @@ default_params = {
                 'min_after_dequeue': 10*INPUT_BATCH_SIZE,
                 'seed': 0,
             },
-            'num_steps': N_TEST // MB_SIZE + 1,
-            'agg_func': lambda x: {k: np.mean(v) for k, v in x.items()},
+            'num_steps': 5957 // MB_SIZE + 1,
+            'agg_func': pearson_agg,
             'online_agg_func': online_agg
         },
-        'train_loss': {
+        'naturalscene_pearson': {
             'data_params': {
                 'func': retinaTF,
-                'source_dirs': [os.path.join(DATA_PATH, 'images'), os.path.join(DATA_PATH, 'labels')],
+                'source_dirs': [os.path.join(NS_DATA_PATH, 'images'), os.path.join(NS_DATA_PATH, 'labels')],
                 'resize': IMAGE_SIZE_RESIZE,
                 'batch_size': INPUT_BATCH_SIZE,
-                'file_pattern': 'train*.tfrecords',
+                'file_pattern': 'test*.tfrecords',
                 'n_threads': 4
             },
             'targets': {
-                'func': loss_metric,
-                'target': 'labels',
+                'func': return_outputs,
+                'targets': ['labels'],
             },
             'queue_params': {
                 'queue_type': 'fifo',
@@ -332,40 +241,61 @@ default_params = {
                 'min_after_dequeue': 10*INPUT_BATCH_SIZE,
                 'seed': 0,
             },
-            'num_steps': N_TRAIN // OUTPUT_BATCH_SIZE + 1,
-            'agg_func': lambda x: {k: np.mean(v) for k, v in x.items()},
+            'num_steps': 5956 // MB_SIZE + 1,
+            'agg_func': pearson_agg,
             'online_agg_func': online_agg
         }
-
     },
     'log_device_placement': False,  # if variable placement has to be logged
 }
 
-def train_ln():
+def test_ln(steps=None, train_stimulus='whitenoise'):
     params = copy.deepcopy(default_params)
-    params['save_params']['dbname'] = 'ln_model'
-    params['save_params']['collname'] = stim_type
-    params['save_params']['exp_id'] = 'trainval0'
-
+    for param in ['save_params', 'load_params']:
+        params[param]['dbname'] = 'ln_model'
+        params[param]['collname'] = train_stimulus
+        params[param]['exp_id'] = 'trainval0'
     params['model_params']['func'] = ln
-    params['learning_rate_params']['learning_rate'] = 1e-3
-    base.train_from_params(**params)
-
-def train_cnn():
+    
+     # determine time steps
+    if steps is None:
+        conn = pm.MongoClient(port=params['load_params']['port'])
+        coll = conn[params['load_params']['dbname']][train_stimulus + '.files']
+        steps = [i['step'] for i in coll.find({'exp_id': 'trainval0', 
+                                               'train_results': {'$exists': True}}, projection=['step'])]
+    for step in steps:
+        print("Running Step %s" % step)
+        params['load_params']['query'] = {'step': step}
+        params['save_params']['exp_id'] = 'testval_step%s' % step
+        base.test_from_params(**params)
+        
+def test_cnn(steps=None, train_stimulus='whitenoise'):
     params = copy.deepcopy(default_params)
-    params['save_params']['dbname'] = 'cnn'
-    params['save_params']['collname'] = stim_type
-    params['save_params']['exp_id'] = 'trainval0'
-
     params['model_params']['func'] = cnn
-    if stim_type == 'whitenoise':
-        params['learning_rate_params']['learning_rate'] = 1e-3
-    else:
-        params['learning_rate_params']['learning_rate'] = 1e-5
-    base.train_from_params(**params)
+    for param in ['save_params', 'load_params']:
+        params[param]['dbname'] = 'cnn'
+        params[param]['collname'] = train_stimulus
+        params[param]['exp_id'] = 'trainval0'
+    
+    if steps is None:
+        conn = pm.MongoClient(port=params['load_params']['port'])
+        coll = conn[params['load_params']['dbname']][train_stimulus + '.files']
+        steps = [i['step'] for i in coll.find({'exp_id': 'trainval0', 
+                                               'train_results': {'$exists': True}}, projection=['step'])]
+    print(params['load_params'])
+    for step in steps:
+        # determine time steps
+        #print("Running Step %s" % step)
+        params['load_params']['query'] = {'step': step}
+        params['save_params']['exp_id'] = 'testval_step%s' % step
+        #base.test_from_params(**params)
  
 if __name__ == '__main__':
-    train_cnn()
-#     train_ln()
-
-
+    # Set stim_type (at the top of this file) to change the data input to the models.
+    # Set the stimulus paSram below to load the model trained on [stimulus].
+    # i.e. stim_type = whitenoise, stimulus = naturalscene means calculating the correlation coefficient
+    # for whitenoise data on the model trained on naturalscene data.
+    # Set the step below to change the model checkpoint.
+    for stimulus in ['whitenoise','naturalscene']:
+        test_cnn(train_stimulus=stimulus)
+        #test_ln(train_stimulus=stimulus)

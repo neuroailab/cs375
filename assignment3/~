@@ -2,6 +2,7 @@ from __future__ import division, print_function, absolute_import
 import os, sys
 from collections import OrderedDict
 import numpy as np
+import pymongo as pm
 
 import tensorflow as tf
 
@@ -10,10 +11,10 @@ from tfutils import base, data, model, optimizer, utils
 import copy
 
 # toggle this to train or to validate at the end
-train_net = True
+train_net = False
 # toggle this to train on whitenoise or naturalscene data
+#stim_type = 'whitenoise'
 stim_type = 'whitenoise'
-#stim_type = 'naturalscene'
 # Figure out the hostname
 host = os.uname()[1]
 if True: #'neuroaicluster' in host:
@@ -114,6 +115,44 @@ def ln(inputs, train=True, prefix=MODEL_PREFIX, devices=DEVICES, num_gpus=NUM_GP
 
     return out, params
 
+def dense_(inputs, shape, activation=tf.nn.softplus):
+    """
+    Args:
+        shape: [input, output]
+    """
+    weights = tf.get_variable(shape=shape, dtype=tf.float32,
+                              initializer=tf.random_normal_initializer(stddev=0.05),
+                              regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+                              name='weights')
+    biases = tf.get_variable('biases', [shape[1]], tf.float32, tf.zeros_initializer())
+    FC = tf.nn.xw_plus_b(inputs, weights, biases, name='FC')
+    if activation is not None:
+        out = activation(FC)
+    else:
+        out = FC
+    return out
+
+def conv_(inp, conv_shape, stride, padding='SAME', reg=None):
+    if reg is not None:
+        weights = tf.get_variable(shape=conv_shape, dtype=tf.float32,
+                                  initializer=tf.contrib.layers.xavier_initializer(),
+                                  regularizer=tf.contrib.layers.l2_regularizer(reg),
+                                  name='weights')
+    else:
+        weights = tf.get_variable(shape=conv_shape, dtype=tf.float32,
+                                  initializer=tf.contrib.layers.xavier_initializer(), name='weights')
+    conv = tf.nn.conv2d(inp, weights,[1, stride, stride, 1], padding=padding, name='conv')
+    biases = tf.get_variable(initializer=tf.zeros_initializer(), shape=[conv_shape[3]], dtype=tf.float32, name='bias')
+    out = tf.nn.bias_add(conv, biases)
+    return out, weights
+
+def gaussian_noise_(input_layer, std):
+    noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32) 
+    return input_layer + noise
+
+def relu_(inp):
+    return tf.nn.relu(inp)
+
 def cnn(inputs, train=True, prefix=MODEL_PREFIX, devices=DEVICES, num_gpus=NUM_GPUS, seed=0, cfg_final=None):
     params = OrderedDict()
     batch_size = inputs['images'].get_shape().as_list()[0]
@@ -121,7 +160,24 @@ def cnn(inputs, train=True, prefix=MODEL_PREFIX, devices=DEVICES, num_gpus=NUM_G
     params['train'] = train
     params['batch_size'] = batch_size
 
-    # implement your CNN here
+    with tf.variable_scope('conv1'):
+        temp, c1_k = conv_(inputs['images'],[15,15,40,16],1,padding='VALID')
+        if train:
+            conv1 = relu_(gaussian_noise_(temp,std=0.1))
+        else:
+            conv1 = relu_(temp)
+            
+    with tf.variable_scope('conv2'):
+        temp, c2_k = conv_(conv1,[9,9,16,8],1,padding='VALID',reg=1e-3)
+        if train:
+            conv2 = relu_(gaussian_noise_(temp,std=0.1))
+        else:
+            conv2 = relu_(temp)
+    
+    with tf.variable_scope('fc'):
+        flat_len = np.product(conv2.shape.as_list()[1:])
+        flatten = tf.reshape(conv2, [-1, flat_len]) 
+        out = dense_(flatten,[flat_len,5])
 
     return out, params
 
@@ -134,6 +190,25 @@ def poisson_loss(logits, labels):
 def mean_loss_with_reg(loss):
     return tf.reduce_mean(loss) + tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
 
+def pearson_corr(logits, labels):
+    print(type(logits))
+    print(type(labels))
+    corr = tf.contrib.metrics.streaming_pearson_correlation(logits, labels)
+    return corr
+   
+def pearson_agg(results):
+    # concatenate results along batch dimension
+    true_rates = np.concatenate(results['labels'], axis=0)
+    pred_rates = np.concatenate(results['pred'], axis=0)
+
+    true_std = np.std(true_rates, axis=0)
+    pred_std = np.std(pred_rates, axis=0)
+
+    true_mean = np.mean(true_rates, axis=0)
+    pred_mean = np.mean(pred_rates, axis=0)
+
+    r = np.sum( (true_rates - true_mean) * (pred_rates - pred_mean), axis=0 ) / (true_std * pred_std)
+
 def online_agg(agg_res, res, step):
     if agg_res is None:
         agg_res = {k: [] for k in res}
@@ -144,30 +219,18 @@ def online_agg(agg_res, res, step):
 def loss_metric(inputs, outputs, target, **kwargs):
     metrics_dict = {}
     metrics_dict['poisson_loss'] = mean_loss_with_reg(poisson_loss(logits=outputs, labels=inputs[target]), **kwargs)
+    metrics_dict['pearson_corr'] = pearson_corr(logits=outputs, labels=inputs[target])
     return metrics_dict
-
-def mean_losses_keep_rest(step_results):
-    retval = {}
-    keys = step_results[0].keys()
-    print('KEYS: ', keys)
-    for k in keys:
-        plucked = [d[k] for d in step_results]
-        if isinstance(k, str) and 'loss' in k:
-            retval[k] = np.mean(plucked)
-        else:
-            retval[k] = plucked
-    return retval
 
 # model parameters
 
 default_params = {
     'save_params': {
-        'host': 'localhost',
+        'host': '35.199.154.71',
         'port': 24444,
         'dbname': 'deepretina',
         'collname': stim_type,
         'exp_id': 'trainval0',
-
         'do_save': True,
         'save_initial_filters': True,
         'save_metrics_freq': 50,  # keeps loss from every SAVE_LOSS_FREQ steps.
@@ -178,7 +241,9 @@ default_params = {
     },
 
     'load_params': {
-        'do_restore': False,
+        'host': '35.199.154.71',
+        'port': 24444,
+        'do_restore': True,
         'query': None
     },
 
@@ -189,51 +254,8 @@ default_params = {
         'prefix': MODEL_PREFIX
     },
 
-    'train_params': {
-        'minibatch_size': MB_SIZE,
-        'data_params': {
-            'func': retinaTF,
-            'source_dirs': [os.path.join(DATA_PATH, 'images'), os.path.join(DATA_PATH, 'labels')],
-            'resize': IMAGE_SIZE_RESIZE,
-            'batch_size': INPUT_BATCH_SIZE,
-            'file_pattern': 'train*.tfrecords',
-            'n_threads': 4
-        },
-        'queue_params': {
-            'queue_type': 'random',
-            'batch_size': OUTPUT_BATCH_SIZE,
-            'capacity': 11*INPUT_BATCH_SIZE,
-            'min_after_dequeue': 10*INPUT_BATCH_SIZE,
-            'seed': 0,
-        },
-        'thres_loss': float('inf'),
-        'num_steps': 50 * NUM_BATCHES_PER_EPOCH,  # number of steps to train
-        'validate_first': True,
-    },
-
-    'loss_params': {
-        'targets': ['labels'],
-        'agg_func': mean_loss_with_reg,
-        'loss_per_case_func': poisson_loss
-    },
-
-    'learning_rate_params': {
-        'func': tf.train.exponential_decay,
-        'learning_rate': 1e-3,
-        'decay_rate': 1.0, # constant learning rate
-        'decay_steps': NUM_BATCHES_PER_EPOCH,
-        'staircase': True
-    },
-
-    'optimizer_params': {
-        'func': optimizer.ClipOptimizer,
-        'optimizer_class': tf.train.AdamOptimizer,
-        'clip': True,
-        'trainable_names': None
-    },
-
     'validation_params': {
-        'test_loss': {
+        'val0': {
             'data_params': {
                 'func': retinaTF,
                 'source_dirs': [os.path.join(DATA_PATH, 'images'), os.path.join(DATA_PATH, 'labels')],
@@ -256,30 +278,6 @@ default_params = {
             'num_steps': N_TEST // MB_SIZE + 1,
             'agg_func': lambda x: {k: np.mean(v) for k, v in x.items()},
             'online_agg_func': online_agg
-        },
-        'train_loss': {
-            'data_params': {
-                'func': retinaTF,
-                'source_dirs': [os.path.join(DATA_PATH, 'images'), os.path.join(DATA_PATH, 'labels')],
-                'resize': IMAGE_SIZE_RESIZE,
-                'batch_size': INPUT_BATCH_SIZE,
-                'file_pattern': 'train*.tfrecords',
-                'n_threads': 4
-            },
-            'targets': {
-                'func': loss_metric,
-                'target': 'labels',
-            },
-            'queue_params': {
-                'queue_type': 'fifo',
-                'batch_size': MB_SIZE,
-                'capacity': 11*INPUT_BATCH_SIZE,
-                'min_after_dequeue': 10*INPUT_BATCH_SIZE,
-                'seed': 0,
-            },
-            'num_steps': N_TRAIN // OUTPUT_BATCH_SIZE + 1,
-            'agg_func': lambda x: {k: np.mean(v) for k, v in x.items()},
-            'online_agg_func': online_agg
         }
 
     },
@@ -291,23 +289,50 @@ def train_ln():
     params['save_params']['dbname'] = 'ln_model'
     params['save_params']['collname'] = stim_type
     params['save_params']['exp_id'] = 'trainval0'
-
     params['model_params']['func'] = ln
-    params['learning_rate_params']['learning_rate'] = 1e-3
-    base.train_from_params(**params)
+     # determine time steps
+    port = params['load_params']['port']
+    dbname = params['load_params']['dbname']
+    conn = pm.MongoClient(port=port)
+    coll = conn[dbname][stim_type + '.files']
 
+    steps = [i['step'] for i in 
+             coll.find({'exp_id' : 'trainval0', 
+                        'train_results' : {'$exists' : True}}, 
+                       projection=['step'])]
+    for step in steps:
+        print("Running Step %s" % step)
+        params['load_params']['query'] = {'step': step}
+        params['save_params']['exp_id'] = 'testval0'
+        base.test_from_params(**params)
+        
 def train_cnn():
     params = copy.deepcopy(default_params)
-    params['save_params']['dbname'] = 'cnn'
-    params['save_params']['collname'] = stim_type
-    params['save_params']['exp_id'] = 'trainval0'
+    params['model_params']['func'] = cnn
+    for param in ['save_params', 'load_params']:
+        params[param]['dbname'] = 'cnn'
+        params[param]['collname'] = stim_type
+        params[param]['exp_id'] = 'trainval0'
+    
+    # determine time steps
+    port = params['load_params']['port']
+    dbname = params['load_params']['dbname']
+    conn = pm.MongoClient(port=port)
+    coll = conn[dbname][stim_type + '.files']
 
-    params['model_params'] = None # FILL IN HERE
-    params['learning_rate_params']['learning_rate'] = 1e-3
-    base.train_from_params(**params)
+    steps = [i['step'] for i in 
+             coll.find({'exp_id' : 'trainval0', 
+                        'train_results' : {'$exists' : True}}, 
+                       projection=['step'])]
+    print(steps[:-1])
+    for step in steps[:-1]:
+        print("Running Step %s" % step)
+        params['load_params']['query'] = {'step': step}
+        params['save_params']['exp_id'] = 'testval0'
+        base.test_from_params(**params)
  
 if __name__ == '__main__':
-    # train_cnn
+    train_cnn()
     train_ln()
 
 
