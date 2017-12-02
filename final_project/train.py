@@ -36,7 +36,7 @@ class ImageNetYOLO():
         net_params = {
             'boxes_per_cell': 2,
             'weight_decay': 0.0005,
-            'cell_size': 7,
+            'cell_size': 4,
             'object_scale':1,
             'noobject_scale':1,
             'class_scale':1,
@@ -182,7 +182,7 @@ class ImageNetYOLO():
         def loss_wrapper(inputs, outputs):
             labels = outputs['labels']
             logits = outputs['logits']
-            return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
+            return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits) + 0.0 * tf.reduce_sum(outputs['bboxes'])
         
         params['loss_params'] = {
             'targets': ['labels'],
@@ -291,7 +291,7 @@ class ImageNetYOLO():
         in the respective dictionary entry.
         """
         def k_wrapper(inputs, outputs, k):
-            return tf.nn.in_top_k(outputs['pred'], inputs['labels'], k)
+            return tf.nn.in_top_k(outputs['logits'], inputs['labels'], k)
                                    
         return {'top1': k_wrapper(inputs, outputs, 1),
                 'top5': k_wrapper(inputs, outputs, 5)}
