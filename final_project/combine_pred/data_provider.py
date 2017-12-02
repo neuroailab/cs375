@@ -12,7 +12,6 @@ import copy
 import argparse
 
 import coco_provider
-import kinetics_provider
 
 sys.path.append('../no_tfutils/')
 from vgg_preprocessing import preprocess_image
