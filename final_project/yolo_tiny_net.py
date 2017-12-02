@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 import re
 
-import Net 
+from net import Net 
 
 class YoloTinyNet(Net):
 

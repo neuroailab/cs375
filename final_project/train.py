@@ -1,55 +1,5 @@
 """
-Welcome to CS375! This is the first part of assignment 1 in which we will
-setup an experiment to train AlexNet on ImageNet from scratch.
-This document will walk you through setting up an experiment using tfutils 
-a tool that we have developed to facilitate using tensorflow.
-tfutils biggest advantage is that it provides an easy interface for storing
-and loading experiments from a mongodb database. It also provides other useful
-features such as data providers for reading tfrecord files or simple ways to
-parallelize models across GPU's.
-The goal of this tutorial is to learn how to setup an experiment that trains
-a standard AlexNet on the ImageNet classification task.
-
-By the time you are reading this document you should have setup your working
-environment as described in the Wiki of this repository:
-    https://github.com/neuroailab/cs375/wiki
-If you haven't yet done so please follow the instructions to setup your
-environment!
-
-In the following, we will introduce you to some of tfutils' functionality
-that you will need to successfully complete this class.
-As you can see at the very end of this file, all you need to do to start 
-training a model with tfutils is to call
-    base.train_from_params(**params)
-This function takes a single argument: A dictionary of parameters that describes
-    - the model saving ('save_params')
-    - the model loading/restoring ('load_params')
-    - the training procedure ('train_params')
-    - the validation procedure ('validation_params')
-    - the optimizer ('optimizer_params')
-    - the learning rate policy ('learning_rate_params')
-    - and the model definition ('model_params')
-
-So let's get started with configuring our experiment. For this, you will be 
-mostly working in the setup_params function. Please scroll down to 
-    def setup_params(self):
-to continue the tutorial. Get ready for some coding!
-
-Note: Although you will only have to edit a small fraction of the code at the
-beginning of the assignment by filling in the blank spaces, you will need to
-build on the completed starter code to fully complete the assignment,
-We expect that you familiarize yourself with the codebase and learn how to
-setup your own experiments taking the assignments as a basis. This code does
-not cover all parts of the assignment and only provides a starting point. To
-fully complete the assignment significant changes have to be made and new
-functions need to be added after filling in the blanks. Also, for your projects
-we won't give out any code and you will have to use what you have learned from
-your assignments. So please always carefully read through the entire code and
-try to understand it. If you have any questions about the code structure,
-we will be happy to answer it.
-
-Attention: All sections that need to be changed to complete the starter code
-are marked with EDIT!
+Final project
 """
 
 
@@ -57,11 +7,10 @@ import os
 import numpy as np
 import tensorflow as tf
 from tfutils import base, data, model, optimizer, utils
-from dataprovider import ImageNetDataProvider
-from models import alexnet_model
+from ImageNetDataProvider import ImageNetDataProvider
+from yolo_tiny_net import YoloTinyNet
 
-
-class ImageNetExperiment():
+class ImageNetYOLO():
     """
     Defines the ImageNet training experiment
     """
@@ -79,6 +28,21 @@ class ImageNetExperiment():
         crop_size = 227
         thres_loss = 1000
         n_epochs = 90
+        common_params = {
+            'image_size': crop_size,
+            'num_classes': 20,
+            'batch_size': 1
+            }
+        net_params = {
+            'boxes_per_cell': 2,
+            'weight_decay': 0.0005,
+            'cell_size': 7,
+            'object_scale':1,
+            'noobject_scale':1,
+            'class_scale':1,
+            'coord_scale':1
+            }
+        ytn = YoloTinyNet(common_params,net_params,test=False)
         train_steps = ImageNetDataProvider.N_TRAIN / batch_size * n_epochs
         val_steps = np.ceil(ImageNetDataProvider.N_VAL / batch_size).astype(int)
 
@@ -146,7 +110,14 @@ class ImageNetExperiment():
                 batches in an online manner, e.g. to calculate the RUNNING mean across
                 batch losses
         """
-
+        
+        """
+        Using combine worlds
+        'data_params': {
+            'func': Combine_world,
+            'cfg_dataset': {'imagenet': 0}
+            '
+        """
         params['validation_params'] = {
             'topn_val': {
                 'data_params': {
@@ -191,7 +162,7 @@ class ImageNetExperiment():
         switch out alexnet_model with your model function.
         """
         params['model_params'] = {
-            'func': alexnet_model,
+            'func': self.Config.ytn.inference,
         }
 
         """
@@ -210,7 +181,7 @@ class ImageNetExperiment():
         """
         def loss_wrapper(inputs, outputs):
             labels = outputs['labels']
-            logits = outputs['pred']
+            logits = outputs['logits']
             return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=logits)
         
         params['loss_params'] = {
@@ -272,11 +243,11 @@ class ImageNetExperiment():
         have changed mongodb.conf), 'dbname', 'collname', and 'exp_id'. 
         """
         params['save_params'] = {
-            'host': 'localhost',
+            'host': '35.199.154.71 ',
             'port': 24444,
-            'dbname': 'assignment1',
+            'dbname': 'final',
             'collname': 'alexnet',
-            'exp_id': '2nd_experiment',
+            'exp_id': 'in_test',
             'save_valid_freq': 10000,
             'save_filters_freq': 30000,
             'cache_filters_freq': 50000,
@@ -296,11 +267,11 @@ class ImageNetExperiment():
         as in 'save_params'.
         """
         params['load_params'] = {
-            'host': 'localhost',
+            'host': '35.199.154.71 ',
             'port': 24444,
-            'dbname': 'assignment1',
+            'dbname': 'final',
             'collname': 'alexnet',
-            'exp_id': '2nd_experiment',
+            'exp_id': 'in_test',
             'do_restore': True,
             'load_query': None,
         }
@@ -363,6 +334,6 @@ if __name__ == '__main__':
     Illustrates how to run the configured model using tfutils
     """
     base.get_params()
-    m = ImageNetExperiment()
+    m = ImageNetYOLO()
     params = m.setup_params()
     base.train_from_params(**params)
