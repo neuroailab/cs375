@@ -194,10 +194,10 @@ def _random_crop(image, label, crop_height, crop_width):
 class COCO(data.TFRecordsParallelByFileProvider):
 
     def __init__(self,
-                 #data_path,
-                 source_dirs,
+                 # data_path,
+                 # source_dirs=['/mnt/data/mscoco/train_tfrecords'],
                  #key_list,
-                 meta_dicts,
+                 # meta_dicts,
                  group='train',
                  batch_size=1,
                  n_threads=4,
@@ -214,14 +214,25 @@ class COCO(data.TFRecordsParallelByFileProvider):
 
         #source_dirs = [data_path['%s/%s' % (self.group, v)] for v in key_list]
         #meta_dicts = [{v : {'dtype': tf.string, 'shape': []}} if v in BYTES_KEYs else {v : {'dtype': tf.int64, 'shape': []}} for v in key_list]
+        key_list = ['height', 'images', 'labels', 'num_objects', \
+                    'segmentation_masks', 'width', 'bboxes']
+
+        # key_list = ['images']
+        source_dirs = ['/mnt/data/mscoco/train_tfrecords/{}/' .format(v) for v in key_list]
+        
+        BYTES_KEYs = ['images', 'labels', 'segmentation_masks', 'bboxes']
+
+        meta_dicts = [{v : {'dtype': tf.string, 'shape': []}} if v in BYTES_KEYs else {v : {'dtype': tf.int64, 'shape': []}} for v in key_list]
 
         super(COCO, self).__init__(
             source_dirs = source_dirs,
             meta_dicts = meta_dicts,
             batch_size=batch_size,
             n_threads=n_threads,
-            shuffle = True,
-            *args, **kwargs)
+            # shuffle = True,
+            shuffle=False,
+            *args, 
+            **kwargs)
 
     def prep_data(self, data):
         for i in range(len(data)):
@@ -235,6 +246,7 @@ class COCO(data.TFRecordsParallelByFileProvider):
             iw = tf.cast(iw, tf.int32)
             inputs['height'] = ih
             inputs['width'] = iw
+            bboxes = tf.decode_raw(inputs['bboxes'], tf.float64)
 
             imsize = tf.size(image)
 
@@ -254,11 +266,13 @@ class COCO(data.TFRecordsParallelByFileProvider):
             labels = tf.decode_raw(inputs['labels'], tf.int32)
             labels = tf.reshape(labels, [num_instances, 1])
             #labels = tf.Print(labels, [labels], message = 'Labels')
-            #inputs['labels'] = labels
+            inputs['labels'] = labels
 
             gt_masks = tf.decode_raw(inputs['segmentation_masks'], tf.uint8)
             gt_masks = tf.cast(gt_masks, tf.int32)
             gt_masks = tf.reshape(gt_masks, [num_instances, ih, iw])
+
+            gt_boxes = tf.reshape(bboxes, [num_instances, 4])
 
             #gt_masks = tf.Print(gt_masks, [tf.shape(gt_masks)], message = 'Shape of all masks')
 
@@ -298,7 +312,13 @@ class COCO(data.TFRecordsParallelByFileProvider):
             #data[i] = {'mask_coco': combine_gt_mask, 'image_coco': image, 'nmobj_coco': num_instances, 'labels_coco': inputs['labels'], 'ih_coco': ih, 'iw_coco': iw}
             #data[i] = {'mask_coco': combine_gt_mask, 'image_coco': image, 'nmobj_coco': num_instances, 'ih_coco': ih, 'iw_coco': iw}
             #data[i]['labels_coco'].set_shape([])
-            data[i] = {'mask_coco': combine_gt_mask, 'image_coco': image}
+
+            # tf.Print(bboxes, [bboxes], message='Bboxes')
+            
+            # bboxes = tf.reshape(bboxes, [1])
+
+            data[i] = {'mask_coco': combine_gt_mask, 'image_coco': image, 'labels': labels}
+            data[i]['boxes'] = gt_boxes
             data[i]['mask_coco'].set_shape([self.crop_height, self.crop_width, 1])
             data[i]['image_coco'].set_shape([self.crop_height, self.crop_width, 3])
 
