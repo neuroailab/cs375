@@ -46,7 +46,7 @@ class YoloTinyNet(Net):
 
     temp_conv = tf.layers.conv2d(images, 16, (3, 3), (1, 1),  
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
@@ -55,7 +55,7 @@ class YoloTinyNet(Net):
 
     temp_conv = tf.layers.conv2d(temp_pool, 32, (3, 3), (1, 1),  
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
@@ -64,7 +64,7 @@ class YoloTinyNet(Net):
 
     temp_conv = tf.layers.conv2d(temp_pool, 64, (3, 3), (1, 1), 
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
@@ -73,7 +73,7 @@ class YoloTinyNet(Net):
 
     temp_conv = tf.layers.conv2d(temp_pool, 128, (3, 3), (1, 1), 
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
@@ -82,7 +82,7 @@ class YoloTinyNet(Net):
 
     temp_conv = tf.layers.conv2d(temp_pool, 256, (3, 3), (1, 1), 
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
@@ -91,7 +91,7 @@ class YoloTinyNet(Net):
 
     temp_conv = tf.layers.conv2d(temp_pool, 512, (3, 3), (1, 1), 
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
@@ -100,21 +100,21 @@ class YoloTinyNet(Net):
 
     temp_conv = tf.layers.conv2d(temp_pool, 1024, (3, 3), (1, 1), 
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1     
 
     temp_conv = tf.layers.conv2d(temp_conv, 1024, (3, 3), (1, 1), 
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1 
 
     temp_conv = tf.layers.conv2d(temp_conv, 1024, (3, 3), (1, 1), 
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1 
@@ -125,13 +125,13 @@ class YoloTinyNet(Net):
     conv_flat = tf.contrib.layers.flatten(temp_conv)
     local1 = tf.layers.dense(conv_flat, 256,
         activation=tf.nn.relu, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         name='fc1')
     outputs['fc1'] = local1
 
     local2 = tf.layers.dense(local1, 4096,
         activation=tf.nn.relu,
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         name='fc2')
     outputs['fc2'] = local2
 
@@ -152,7 +152,7 @@ class YoloTinyNet(Net):
 
     # ImageNet logit outputs
     logits = tf.layers.dense(local2, 1000, 
-        regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
+        regularizer=tf.contrib.layers.l2_regularizer(self.weight_decay), 
         name='logits')
     outputs['logits'] = logits
 
