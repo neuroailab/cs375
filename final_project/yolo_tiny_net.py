@@ -151,9 +151,9 @@ class YoloTinyNet(Net):
     outputs['bboxes'] = predicts
 
     # ImageNet logit outputs
-    logits = tf.layers.dense(local2, 
+    logits = tf.layers.dense(local2, 1000, 
         regularizer=tf.layers.contrib.l2_regularizer(self.weight_decay), 
-        1000, name='logits')
+        name='logits')
     outputs['logits'] = logits
 
     return outputs, {}
