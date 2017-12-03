@@ -214,7 +214,7 @@ class ImageNetYOLO():
         params['learning_rate_params'] = {	
             'func': tf.train.exponential_decay,
             'learning_rate': 0.01,
-            'decay_steps': ImageNetDataProvider.N_TRAIN / self.batch_size,
+            'decay_steps': ImageNetDataProvider.N_TRAIN / self.Config.batch_size,
             'decay_rate': 0.95,
             'staircase': True,
         }
