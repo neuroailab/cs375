@@ -210,14 +210,13 @@ class ImageNetYOLO():
         4.) You will need to delete all keys except for 'func' and replace them
         with the input arguments to 
         """
-        def lr_wrapper(global_step, boundaries, values):
-            boundaries = list(np.array(boundaries,dtype=np.int64))
-            return tf.train.piecewise_constant(x=global_step, boundaries=boundaries, values=values)
         
         params['learning_rate_params'] = {	
-            'func': lr_wrapper,
-            'boundaries': [150000, 300000, 450000],
-            'values': [0.01, 0.005, 0.001, 0.0005]
+            'func': tf.train.exponential_decay,
+            'learning_rate': 0.01,
+            'decay_steps': ImageNetDataProvider.N_TRAIN / self.batch_size,
+            'decay_rate': 0.95,
+            'staircase': True,
         }
 
         """
@@ -229,9 +228,8 @@ class ImageNetYOLO():
         """
         params['optimizer_params'] = {
             'func': optimizer.ClipOptimizer,
-            'optimizer_class': tf.train.MomentumOptimizer,
+            'optimizer_class': tf.train.AdamOptimizer,
             'clip': False,
-            'momentum': .9,
         }
 
         """
