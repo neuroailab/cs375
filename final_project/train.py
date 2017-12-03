@@ -247,7 +247,7 @@ class ImageNetYOLO():
             'port': 24444,
             'dbname': 'final',
             'collname': 'alexnet',
-            'exp_id': 'in_test',
+            'exp_id': 'in_test2',
             'save_valid_freq': 10000,
             'save_filters_freq': 30000,
             'cache_filters_freq': 50000,
@@ -271,8 +271,8 @@ class ImageNetYOLO():
             'port': 24444,
             'dbname': 'final',
             'collname': 'alexnet',
-            'exp_id': 'in_test',
-            'do_restore': True,
+            'exp_id': 'in_test2',
+            'do_restore': False,
             'load_query': None,
         }
 
