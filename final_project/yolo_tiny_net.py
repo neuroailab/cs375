@@ -44,51 +44,51 @@ class YoloTinyNet(Net):
 
     conv_num = 1
 
-    temp_conv = tf.layers.conv2d(images, 16, (3, 3), (1, 1),  activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), padding='SAME', name='conv' + str(conv_num))
+    temp_conv = tf.layers.conv2d(images, 16, (3, 3), (1, 1),  activation=tf.nn.relu, padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
 
     temp_pool = tf.layers.max_pooling2d(temp_conv, [2, 2], [2, 2], padding='SAME', name='pool1')
 
-    temp_conv = tf.layers.conv2d(temp_pool, 32, (3, 3), (1, 1),  activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), padding='SAME', name='conv' + str(conv_num))
+    temp_conv = tf.layers.conv2d(temp_pool, 32, (3, 3), (1, 1),  activation=tf.nn.relu, padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
 
     temp_pool = tf.layers.max_pooling2d(temp_conv, [2, 2], [2, 2], padding='SAME', name='pool2')
 
-    temp_conv = tf.layers.conv2d(temp_pool, 64, (3, 3), (1, 1),  activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), padding='SAME', name='conv' + str(conv_num))
+    temp_conv = tf.layers.conv2d(temp_pool, 64, (3, 3), (1, 1),  activation=tf.nn.relu, padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
     
     temp_pool = tf.layers.max_pooling2d(temp_conv, [2, 2], [2, 2], padding='SAME', name='pool3')
 
-    temp_conv = tf.layers.conv2d(temp_pool, 128, (3, 3), (1, 1),  activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), padding='SAME', name='conv' + str(conv_num))
+    temp_conv = tf.layers.conv2d(temp_pool, 128, (3, 3), (1, 1),  activation=tf.nn.relu, padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
 
     temp_pool = tf.layers.max_pooling2d(temp_conv, [2, 2], [2, 2], padding='SAME', name='pool4')
 
-    temp_conv = tf.layers.conv2d(temp_pool, 256, (3, 3), (1, 1),  activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), padding='SAME', name='conv' + str(conv_num))
+    temp_conv = tf.layers.conv2d(temp_pool, 256, (3, 3), (1, 1),  activation=tf.nn.relu, padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
 
     temp_pool = tf.layers.max_pooling2d(temp_conv, [2, 2], [2, 2], padding='SAME', name='pool5')
 
-    temp_conv = tf.layers.conv2d(temp_pool, 512, (3, 3), (1, 1),  activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), padding='SAME', name='conv' + str(conv_num))
+    temp_conv = tf.layers.conv2d(temp_pool, 512, (3, 3), (1, 1),  activation=tf.nn.relu, padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1
 
     temp_pool = tf.layers.max_pooling2d(temp_conv, [2, 2], [2, 2], padding='SAME', name='pool6')
 
-    temp_conv = tf.layers.conv2d(temp_pool, 1024, (3, 3), (1, 1),  activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), padding='SAME', name='conv' + str(conv_num))
+    temp_conv = tf.layers.conv2d(temp_pool, 1024, (3, 3), (1, 1),  activation=tf.nn.relu, padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1     
 
-    temp_conv = tf.layers.conv2d(temp_conv, 1024, (3, 3), (1, 1),  activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), padding='SAME', name='conv' + str(conv_num))
+    temp_conv = tf.layers.conv2d(temp_conv, 1024, (3, 3), (1, 1),  activation=tf.nn.relu, padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1 
 
-    temp_conv = tf.layers.conv2d(temp_conv, 1024, (3, 3), (1, 1),  activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), padding='SAME', name='conv' + str(conv_num))
+    temp_conv = tf.layers.conv2d(temp_conv, 1024, (3, 3), (1, 1),  activation=tf.nn.relu, padding='SAME', name='conv' + str(conv_num))
     outputs['conv_%s' % conv_num] = temp_conv
     conv_num += 1 
 
@@ -96,10 +96,10 @@ class YoloTinyNet(Net):
 
     # Fully connected layers
     conv_flat = tf.contrib.layers.flatten(temp_conv)
-    local1 = tf.layers.dense(conv_flat, 256, kernel_initializer=tf.contrib.layers.xavier_initializer(), activation=tf.nn.relu, name='fc1')
+    local1 = tf.layers.dense(conv_flat, 256, activation=tf.nn.relu, name='fc1')
     outputs['fc1'] = local1
 
-    local2 = tf.layers.dense(local1, 4096, kernel_initializer=tf.contrib.layers.xavier_initializer(), activation=tf.nn.relu, name='fc2')
+    local2 = tf.layers.dense(local1, 4096, activation=tf.nn.relu, name='fc2')
     outputs['fc2'] = local2
 
     # Bounding box outputs
@@ -118,7 +118,7 @@ class YoloTinyNet(Net):
     outputs['bboxes'] = predicts
 
     # ImageNet logit outputs
-    logits = tf.layers.dense(local2, 1000, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='logits')
+    logits = tf.layers.dense(local2, 1000, name='logits')
     outputs['logits'] = logits
 
     return outputs, {}
