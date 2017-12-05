@@ -57,11 +57,11 @@ import os
 import numpy as np
 import tensorflow as tf
 from tfutils import base, data, model, optimizer, utils
-from dataprovider import ImageNetDataProvider
-from models import alexnet_model
+from dataprovider import CIFAR10DataProvider
+from pooledBottleneck_model import pBottleneckSparse_model, pbottleSparse_loss
 
 
-class ImageNetExperiment():
+class CIFARExperiment():
     """
     Defines the ImageNet training experiment
     """
@@ -74,13 +74,13 @@ class ImageNetExperiment():
         size and n_epochs if you want but please do not change the rest.
         """
         batch_size = 256
-        data_path = '/datasets/TFRecord_Imagenet_standard'
-        seed = 0
-        crop_size = 227
-        thres_loss = 1000
-        n_epochs = 90
-        train_steps = ImageNetDataProvider.N_TRAIN / batch_size * n_epochs
-        val_steps = np.ceil(ImageNetDataProvider.N_VAL / batch_size).astype(int)
+        data_path = '/datasets/cifar10/tfrecords'
+        seed = 5
+        crop_size = 24
+        thres_loss = 1000000000000000
+        n_epochs = 6
+        train_steps = CIFAR10DataProvider.N_TRAIN / batch_size * n_epochs
+        val_steps = 24
 
 
     def setup_params(self):
@@ -108,8 +108,8 @@ class ImageNetExperiment():
         """
         params['train_params'] = {
             'data_params': {
-                # ImageNet data provider arguments
-                'func': ImageNetDataProvider,
+                # Cifar 10 data provider arguments
+                'func': CIFAR10DataProvider,
                 'data_path': self.Config.data_path,
                 'group': 'train',
                 'crop_size': self.Config.crop_size,
@@ -118,7 +118,6 @@ class ImageNetExperiment():
                 'batch_size': self.Config.batch_size,
                 'shuffle': False,
                 'shuffle_seed': self.Config.seed,
-                'file_grab_func': self.subselect_tfrecords,
                 'n_threads': 4,
             },
             'queue_params': {
@@ -146,36 +145,32 @@ class ImageNetExperiment():
                 batches in an online manner, e.g. to calculate the RUNNING mean across
                 batch losses
         """
-
         params['validation_params'] = {
-            'topn_val': {
+            'valid0': {
                 'data_params': {
-                    # ImageNet data provider arguments
-                    'func': ImageNetDataProvider,
+                    # Cifar 10 data provider arguments
+                    'func': CIFAR10DataProvider,
                     'data_path': self.Config.data_path,
                     'group': 'val',
                     'crop_size': self.Config.crop_size,
                     # TFRecords (super class) data provider arguments
-                    'file_pattern': 'validation*.tfrecords',
+                    'file_pattern': 'test*.tfrecords',
                     'batch_size': self.Config.batch_size,
                     'shuffle': False,
                     'shuffle_seed': self.Config.seed,
-                    'file_grab_func': self.subselect_tfrecords,
                     'n_threads': 4,
                 },
                 'queue_params': {
                     'queue_type': 'fifo',
                     'batch_size': self.Config.batch_size,
                     'seed': self.Config.seed,
-                    'capacity': self.Config.batch_size * 10,
-                    'min_after_dequeue': self.Config.batch_size * 5,
-                },
-                'targets': {
-                    'func': self.in_top_k,
+                    'capacity': self.Config.batch_size,
+                    'min_after_dequeue': self.Config.batch_size,
                 },
                 'num_steps': self.Config.val_steps,
-                'agg_func': self.agg_mean, 
+                'targets': {'func': self.autoencoder_validation},
                 'online_agg_func': self.online_agg_mean,
+                'agg_func': self.agg_mean,
             }
         }
 
@@ -191,7 +186,7 @@ class ImageNetExperiment():
         switch out alexnet_model with your model function.
         """
         params['model_params'] = {
-            'func': alexnet_model,
+            'func': pBottleneckSparse_model,
         }
 
         """
@@ -208,10 +203,11 @@ class ImageNetExperiment():
         2.) labels = outputs['labels']
             logits = outputs['pred']
         """
+        
         params['loss_params'] = {
             'targets': ['labels'],
             'agg_func': tf.reduce_mean,
-            'loss_per_case_func': EDIT_YOUR_LOSS_PER_CASE_FUNC_HERE,
+            'loss_per_case_func': pbottleSparse_loss,
             'loss_per_case_func_params' : {'_outputs': 'outputs', 
                 '_targets_$all': 'inputs'},
             'loss_func_kwargs' : {},
@@ -230,16 +226,17 @@ class ImageNetExperiment():
         function. Set the 'x' argument of tf.train.piecewise_constant to
         global_step.
         3.) set 'values' to [0.01, 0.005, 0.001, 0.0005] and
-            'boundaries' to list(np.array([150000, 300000, 450000]).astype(np.int64)) 
-            for a batch size of 256
+            'boundaries' to [150000, 300000, 450000] for a batch size of 256
         4.) You will need to delete all keys except for 'func' and replace them
         with the input arguments to 
         """
+        def lr_wrapper(global_step, boundaries, values):
+            boundaries = list(np.array(boundaries,dtype=np.int64))
+            return tf.train.piecewise_constant(x=global_step, boundaries=boundaries, values=values)
         
         params['learning_rate_params'] = {
-            'func': tf.train.exponential_decay,
-            'learning_rate': 0.01,
-            'decay_steps': ImageNetDataProvider.N_TRAIN / self.batch_size,
+            'learning_rate': 5e-3,
+            'decay_steps': 200,
             'decay_rate': 0.95,
             'staircase': True,
         }
@@ -255,7 +252,6 @@ class ImageNetExperiment():
             'func': optimizer.ClipOptimizer,
             'optimizer_class': tf.train.AdamOptimizer,
             'clip': False,
-            'momentum': .9,
         }
 
         """
@@ -267,15 +263,15 @@ class ImageNetExperiment():
         have changed mongodb.conf), 'dbname', 'collname', and 'exp_id'. 
         """
         params['save_params'] = {
-            'host': EDIT_YOUR_HOST,
-            'port': EDIT_YOUR_PORT,
-            'dbname': EDIT_YOUR_DBNAME,
-            'collname': EDIT_YOUR_COLLNAME,
-            'exp_id': EDIT_YOUR_EXP_ID,
-            'save_valid_freq': 10000,
-            'save_filters_freq': 30000,
-            'cache_filters_freq': 50000,
-            'save_metrics_freq': 200,
+            'host': 'localhost',
+            'port': 24444,
+            'dbname': 'assignment2',
+            'collname': 'pooled_bottleneckSparse',
+            'exp_id': '1st_experiment',
+            'save_valid_freq': 500,
+            'save_filters_freq': 1000,
+            'cache_filters_freq':1000,
+            'save_metrics_freq': 1000,
             'save_initial_filters' : False,
             'save_to_gfs': [],
         }
@@ -291,12 +287,12 @@ class ImageNetExperiment():
         as in 'save_params'.
         """
         params['load_params'] = {
-            'host': EDIT_YOUR_HOST,
-            'port': EDIT_YOUR_PORT,
-            'dbname': EDIT_YOUR_DBNAME,
-            'collname': EDIT_YOUR_COLLNAME,
-            'exp_id': EDIT_YOUR_EXP_ID,
-            'do_restore': False,
+            'host': 'localhost',
+            'port': 24444,
+            'dbname': 'assignment2',
+            'collname': 'pooled_bottleneckSparse',
+            'exp_id': '1st_experiment',
+            'do_restore': True,
             'load_query': None,
         }
 
@@ -314,8 +310,11 @@ class ImageNetExperiment():
         You will need to EDIT this part. Implement the top1 and top5 functions
         in the respective dictionary entry.
         """
-        return {'top1': YOUR_TOP1_FUNCTION_CALL_HERE,
-                'top5': YOUR_TOP5_FUNCTION_CALL_HERE}
+        def k_wrapper(inputs, outputs, k):
+            return tf.nn.in_top_k(outputs['deconv'], inputs['labels'], k)
+                                   
+        return {'top1': k_wrapper(inputs, outputs, 1),
+                'top5': k_wrapper(inputs, outputs, 5)}
 
 
     def subselect_tfrecords(self, path):
@@ -339,22 +338,43 @@ class ImageNetExperiment():
         return retval
 
 
-    def online_agg_mean(self, agg_res, res, step):
+    def autoencoder_validation(self, inputs, outputs, n=5, **kwargs):
+        '''
+        Validation to view the reconstructed images
+        '''
+        return {'total_loss': pbottleSparse_loss(inputs, outputs),
+                'pred': outputs['deconv2'],
+                'gt': outputs['input']}
+    
+    def online_agg_mean(self,agg_res, res, step):
         """
         Appends the mean value for each key
         """
         if agg_res is None:
             agg_res = {k: [] for k in res}
         for k, v in res.items():
-            agg_res[k].append(np.mean(v))
+            if k in ['pred', 'gt']:
+                value = v
+            else:
+                value = np.mean(v)
+            agg_res[k].append(value)
         return agg_res
 
+    def agg_mean(self,results):
+        for k in results:
+            if k in ['pred', 'gt']:
+                results[k] = results[k][0]
+            elif k is 'total_loss':
+                results[k] = np.mean(results[k])
+            else:
+                raise KeyError('Unknown target')
+        return results
 
 if __name__ == '__main__':
     """
     Illustrates how to run the configured model using tfutils
     """
     base.get_params()
-    m = ImageNetExperiment()
+    m = CIFARExperiment()
     params = m.setup_params()
     base.train_from_params(**params)
