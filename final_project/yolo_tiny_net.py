@@ -208,12 +208,21 @@ class YoloTinyNet(Net):
     """
     label = labels[num:num+1, :]
     label = tf.cast(tf.reshape(label, [-1]), tf.float32)
+    # x_center, y_center = [(label[j] + label[j+2])/2 for j in (0,1)]
+    # w, h = [(label[j+2] - label[j]) for j in (0,1)]
+    # label = [x_center, y_center, w, h, label[4]]
+
 
     #calculate objects  tensor [CELL_SIZE, CELL_SIZE]
-    min_x = (label[0] - label[2] / 2) / (self.image_size // self.cell_size)
-    max_x = (label[0] + label[2] / 2) / (self.image_size // self.cell_size)
-    min_y = (label[1] - label[3] / 2) / (self.image_size // self.cell_size)
-    max_y = (label[1] + label[3] / 2) / (self.image_size // self.cell_size)
+    # min_x = (label[0] - label[2] / 2) / (self.image_size // self.cell_size)
+    # max_x = (label[0] + label[2] / 2) / (self.image_size // self.cell_size)
+    # min_y = (label[1] - label[3] / 2) / (self.image_size // self.cell_size)
+    # max_y = (label[1] + label[3] / 2) / (self.image_size // self.cell_size)
+
+    min_x = tf.minimum(self.image_size-1.0, label[0]) / (self.image_size // self.cell_size)
+    max_x = tf.minimum(self.image_size-1.0, label[2]) / (self.image_size // self.cell_size)
+    min_y = tf.minimum(self.image_size-1.0, label[1]) / (self.image_size // self.cell_size)
+    max_y = tf.minimum(self.image_size-1.0, label[3]) / (self.image_size // self.cell_size)
 
     min_x = tf.floor(min_x)
     min_y = tf.floor(min_y)
@@ -230,10 +239,10 @@ class YoloTinyNet(Net):
 
     #calculate objects  tensor [CELL_SIZE, CELL_SIZE]
     #calculate responsible tensor [CELL_SIZE, CELL_SIZE]
-    center_x = label[0] / (self.image_size / self.cell_size)
+    center_x = (min_x + max_x)/2 #((label[2]-label[0])/2) / (self.image_size / self.cell_size)
     center_x = tf.floor(center_x)
 
-    center_y = label[1] / (self.image_size / self.cell_size)
+    center_y = (min_y + max_y)/2 #((label[3]-label[1])/2) / (self.image_size / self.cell_size)
     center_y = tf.floor(center_y)
 
     response = tf.ones([1, 1], tf.float32)
@@ -348,7 +357,7 @@ class YoloTinyNet(Net):
       predict = predicts[i, :, :, :]
       label = labels[i, :, :]
       object_num = objects_num[i]
-      p = tf.Print(objects_num, [object_num, tf.shape(label), tf.shape(predict)], message = 'Number of instances')
+      p = tf.Print(objects_num, [object_num, label, tf.shape(predict)], message = 'Number of instances', summarize=60)
       nilboy = tf.ones([7,7,2])
       args = [tf.constant(0), object_num, [class_loss, object_loss, noobject_loss, coord_loss], predict, label, nilboy]
       tuple_results = tf.while_loop(self.cond1, self.body1, args)

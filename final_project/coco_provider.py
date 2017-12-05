@@ -263,7 +263,7 @@ class COCO(data.TFRecordsParallelByFileProvider):
             num_instances = tf.cast(num_instances, tf.int32)
             inputs['num_objects'] = num_instances
             
-            # labels = tf.decode_raw(inputs['labels'], tf.int32)
+            labels = tf.decode_raw(inputs['labels'], tf.int32)
             # labels = tf.reshape(labels, [num_instances, 1])
             #labels = tf.Print(labels, [labels], message = 'Labels')
             # inputs['labels'] = labels
@@ -282,8 +282,17 @@ class COCO(data.TFRecordsParallelByFileProvider):
             zero_pad = tf.zeros([max_objects*4] - tf.shape(box_vector), dtype=box_vector.dtype)
             padded_boxes = tf.concat([box_vector, zero_pad], axis=0)
             padded_boxes = tf.reshape(padded_boxes, [-1, 4])
+            # we need to turn these into x_center, y_center, w, h
+            # x_center, y_center = [(padded_boxes[:,j] + padded_boxes[:,j+2])/2 for j in (0,1)]
+            # w, h = [(padded_boxes[:,j+2] - padded_boxes[:,j]) for j in (0,1)]
+            # padded_boxes = tf.stack([x_center, y_center, w, h])
+
+            zero_pad = tf.zeros([max_objects] - tf.shape(labels), dtype=labels.dtype)
+            padded_labels = tf.reshape(tf.cast(tf.concat([labels, zero_pad], axis=0), tf.float64), [-1, 1])
+
+            # padded_labels = tf.cast(tf.reshape(tf.pad(labels, [[0, max_objects]]), [-1, 1]), tf.float64)
             # ones = tf.ones([tf.shape(padded_boxes)[0], 1], dtype=padded_boxes.dtype)
-            padded_boxes_with_conf = tf.pad(padded_boxes, tf.constant([[0,0],[0,1]]), constant_values=1.0)#tf.concat([padded_boxes, ones], 1)
+            padded_boxes_with_conf = tf.concat([padded_boxes, padded_labels], 1) #tf.pad(padded_boxes, tf.constant([[0,0],[0,1]]), constant_values=1.0)
             data[i] = {'images': image, 'boxes': padded_boxes_with_conf, 'num_objects': num_instances}#, 'multiple_labels': labels}
             # data[i]['mask_coco'].set_shape([self.crop_height, self.crop_width, 1])
             data[i]['images'].set_shape([self.crop_height, self.crop_width, 3])
