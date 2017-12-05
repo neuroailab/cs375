@@ -41,6 +41,7 @@ class YoloTinyNet(Net):
     
     outputs = inputs
     images = inputs['images']
+    images = tf.reshape(images, [1, 224, 224, 3])
 
     conv_num = 1
 
@@ -206,14 +207,13 @@ class YoloTinyNet(Net):
       labels : [max_objects, 5]  (x_center, y_center, w, h, class)
     """
     label = labels[num:num+1, :]
-    label = tf.reshape(label, [-1])
+    label = tf.cast(tf.reshape(label, [-1]), tf.float32)
 
     #calculate objects  tensor [CELL_SIZE, CELL_SIZE]
-    min_x = (label[0] - label[2] / 2) / (self.image_size / self.cell_size)
-    max_x = (label[0] + label[2] / 2) / (self.image_size / self.cell_size)
-
-    min_y = (label[1] - label[3] / 2) / (self.image_size / self.cell_size)
-    max_y = (label[1] + label[3] / 2) / (self.image_size / self.cell_size)
+    min_x = (label[0] - label[2] / 2) / (self.image_size // self.cell_size)
+    max_x = (label[0] + label[2] / 2) / (self.image_size // self.cell_size)
+    min_y = (label[1] - label[3] / 2) / (self.image_size // self.cell_size)
+    max_y = (label[1] + label[3] / 2) / (self.image_size // self.cell_size)
 
     min_x = tf.floor(min_x)
     min_y = tf.floor(min_y)
@@ -323,7 +323,7 @@ class YoloTinyNet(Net):
                  tf.nn.l2_loss(I * (p_sqrt_w - sqrt_w))/ self.image_size +
                  tf.nn.l2_loss(I * (p_sqrt_h - sqrt_h))/self.image_size) * self.coord_scale
 
-    nilboy = I
+    # nilboy = I
 
     return num + 1, object_num, [loss[0] + class_loss, loss[1] + object_loss, loss[2] + noobject_loss, loss[3] + coord_loss], predict, labels, nilboy
 
@@ -348,7 +348,8 @@ class YoloTinyNet(Net):
       label = labels[i, :, :]
       object_num = objects_num[i]
       nilboy = tf.ones([7,7,2])
-      tuple_results = tf.while_loop(self.cond1, self.body1, [tf.constant(0), object_num, [class_loss, object_loss, noobject_loss, coord_loss], predict, label, nilboy])
+      args = [tf.constant(0), object_num, [class_loss, object_loss, noobject_loss, coord_loss], predict, label, nilboy]
+      tuple_results = tf.while_loop(self.cond1, self.body1, args)
       for j in range(4):
         loss[j] = loss[j] + tuple_results[2][j]
       nilboy = tuple_results[5]

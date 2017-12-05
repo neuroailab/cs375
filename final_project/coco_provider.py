@@ -39,7 +39,7 @@ def _smallest_size_at_least(height, width, smallest_side):
     new_width = tf.to_int32(width * scale)
     return new_height, new_width
 
-def preprocess_for_training(image, gt_masks, image_min_size = 240):
+def preprocess_for_training(image, image_min_size = 240):
     
     ih, iw = tf.shape(image)[0], tf.shape(image)[1]
 
@@ -49,13 +49,13 @@ def preprocess_for_training(image, gt_masks, image_min_size = 240):
     image = tf.image.resize_bilinear(image, [new_ih, new_iw], align_corners=False)
     image = tf.squeeze(image, axis=[0])
 
-    gt_masks = tf.expand_dims(gt_masks, -1)
-    gt_masks = tf.cast(gt_masks, tf.float32)
-    gt_masks = tf.image.resize_nearest_neighbor(gt_masks, [new_ih, new_iw], align_corners=False)
-    gt_masks = tf.cast(gt_masks, tf.int32)
-    gt_masks = tf.squeeze(gt_masks, axis=[-1])
+    # gt_masks = tf.expand_dims(gt_masks, -1)
+    # gt_masks = tf.cast(gt_masks, tf.float32)
+    # gt_masks = tf.image.resize_nearest_neighbor(gt_masks, [new_ih, new_iw], align_corners=False)
+    # gt_masks = tf.cast(gt_masks, tf.int32)
+    # gt_masks = tf.squeeze(gt_masks, axis=[-1])
 
-    return image, gt_masks 
+    return image
 
 def combine_masks(gt_masks, labels):
     def _time_label(input_elem):
@@ -124,7 +124,7 @@ def _crop(image, offset_height, offset_width, crop_height, crop_width):
       tf.slice(image, offsets, cropped_shape))
     return tf.reshape(image, cropped_shape)
 
-def _central_crop(image, label, crop_height, crop_width):
+def _central_crop(image, crop_height, crop_width):
 
     image_height = tf.shape(image)[0]
     image_width = tf.shape(image)[1]
@@ -134,9 +134,7 @@ def _central_crop(image, label, crop_height, crop_width):
 
     output_image = _crop(image, offset_height, offset_width,
                                crop_height, crop_width)
-    output_label = _crop(label, offset_height, offset_width,
-                               crop_height, crop_width)
-    return output_image, output_label
+    return output_image
 
 def _random_crop(image, label, crop_height, crop_width):
     
@@ -246,8 +244,9 @@ class COCO(data.TFRecordsParallelByFileProvider):
             iw = tf.cast(iw, tf.int32)
             inputs['height'] = ih
             inputs['width'] = iw
+            
             bboxes = tf.decode_raw(inputs['bboxes'], tf.float64)
-
+            
             imsize = tf.size(image)
 
             #image = tf.Print(image, [imsize, ih, iw], message = 'Imsize')
@@ -255,73 +254,41 @@ class COCO(data.TFRecordsParallelByFileProvider):
             image = tf.cond(tf.equal(imsize, ih * iw), \
                   lambda: tf.image.grayscale_to_rgb(tf.reshape(image, (ih, iw, 1))), \
                   lambda: tf.reshape(image, (ih, iw, 3)))
-
+            
             image_height = ih
             image_width = iw
             num_instances = inputs['num_objects']
             num_instances = tf.cast(num_instances, tf.int32)
-            #num_instances = tf.Print(num_instances, [num_instances], message = 'Number of instances')
             inputs['num_objects'] = num_instances
-
+            
             labels = tf.decode_raw(inputs['labels'], tf.int32)
             labels = tf.reshape(labels, [num_instances, 1])
             #labels = tf.Print(labels, [labels], message = 'Labels')
             inputs['labels'] = labels
-
-            gt_masks = tf.decode_raw(inputs['segmentation_masks'], tf.uint8)
-            gt_masks = tf.cast(gt_masks, tf.int32)
-            gt_masks = tf.reshape(gt_masks, [num_instances, ih, iw])
+            single_label = tf.constant([1], dtype=tf.int32)
+            # single_label = labels[0]
 
             gt_boxes = tf.reshape(bboxes, [num_instances, 4])
+            image = preprocess_for_training(image, self.image_min_size)
+            image = _central_crop(image, self.crop_height, self.crop_width)
+            x_shift, y_shift = (iw - self.crop_width)/2, (ih - self.crop_height)/2
+            boxes = gt_boxes - [x_shift, y_shift, x_shift, y_shift]
 
-            #gt_masks = tf.Print(gt_masks, [tf.shape(gt_masks)], message = 'Shape of all masks')
 
-            #image, gt_boxes, gt_masks = coco_preprocess.preprocess_image(image, gt_boxes, gt_masks, True)
-            image, gt_masks = preprocess_for_training(image, gt_masks, self.image_min_size)
-
-            #gt_masks = tf.Print(gt_masks, [tf.shape(gt_masks)], message = 'Shape of all masks')
-
-            #combine_gt_mask = combine_masks(gt_masks, labels)
-            #combine_gt_mask = tf.zeros(tf.shape(gt_masks[0]), dtype = tf.float32)
-            #combine_gt_mask = tf.py_func(combine_masks_pyfunc, [labels, gt_masks, combine_gt_mask], [tf.float32])
-
-            '''
-            gt_map = tf.zeros([1, tf.shape(image)[0], tf.shape(image)[1], 91])
-            output_map_res = tf.py_func(preprocess_gtmap, [labels, gt_masks, gt_map], [tf.float32])[0]
-            output_map_res = tf.Print(output_map_res, [tf.shape(output_map_res)], message = 'Shape of output')
-
-            combine_gt_mask = tf.reduce_sum(output_map_res, axis = [3])
-            combine_gt_mask = tf.squeeze(combine_gt_mask, axis = [0])
-            combine_gt_mask = tf.expand_dims(combine_gt_mask, axis = -1)
-            '''
-            tiled_labels = tf.tile(labels + 1, [1, tf.shape(gt_masks)[1]*tf.shape(gt_masks)[2]])
-            tiled_labels = tf.reshape(tiled_labels, [tf.shape(tiled_labels)[0], tf.shape(gt_masks)[1], tf.shape(gt_masks)[2]])
-            combine_gt_mask = tf.multiply(gt_masks, tiled_labels)
-            combine_gt_mask = tf.reduce_max(combine_gt_mask, axis = [0])
-            combine_gt_mask = tf.expand_dims(combine_gt_mask, axis = -1)
-            #combine_gt_mask = tf.Print(combine_gt_mask, [tf.shape(combine_gt_mask)], message = 'Shape of mask')
-
-            if self.group=='train':
-                image, combine_gt_mask = _random_crop(image, combine_gt_mask, self.crop_height, self.crop_width)
-            else:
-                image, combine_gt_mask = _central_crop(image, combine_gt_mask, self.crop_height, self.crop_width)
-
-            #combine_gt_mask = tf.Print(combine_gt_mask, [tf.shape(combine_gt_mask)], message = 'Shape of mask')
-            #image = tf.Print(image, [tf.shape(combine_gt_mask)], message = 'Shape of image 2')
-            #image = tf.expand_dims(image, axis=0)
-            #data[i] = {'mask_coco': combine_gt_mask, 'image_coco': image, 'nmobj_coco': num_instances, 'labels_coco': inputs['labels'], 'ih_coco': ih, 'iw_coco': iw}
-            #data[i] = {'mask_coco': combine_gt_mask, 'image_coco': image, 'nmobj_coco': num_instances, 'ih_coco': ih, 'iw_coco': iw}
-            #data[i]['labels_coco'].set_shape([])
-
-            # tf.Print(bboxes, [bboxes], message='Bboxes')
+            bboxes = tf.reshape(bboxes, [-1, 4])
+            data[i] = {'images': image, 'labels': labels, 'boxes': bboxes, 'num_objects': num_instances}#, 'multiple_labels': labels}
+            # data[i]['mask_coco'].set_shape([self.crop_height, self.crop_width, 1])
+            data[i]['images'].set_shape([self.crop_height, self.crop_width, 3])
+        
+            # data[i] = {
+            #     'images': tf.random_normal([224, 224, 3]), 
+            #     'labels': single_label,
+            #     'boxes': bboxes,
+            #     'garbage_image': image,
+            # }
+            data[i]['ih'] = ih
+            data[i]['iw'] = iw
             
-            # bboxes = tf.reshape(bboxes, [1])
-
-            data[i] = {'mask_coco': combine_gt_mask, 'image_coco': image, 'labels': labels}
-            data[i]['boxes'] = gt_boxes
-            data[i]['mask_coco'].set_shape([self.crop_height, self.crop_width, 1])
-            data[i]['image_coco'].set_shape([self.crop_height, self.crop_width, 3])
-
         return data
 
     def set_data_shapes_none(self, data):
