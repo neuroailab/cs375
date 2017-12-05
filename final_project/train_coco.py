@@ -58,12 +58,12 @@ class CocoYolo():
         # boxes = var_dict['boxes']
         # boxes_val = sess.run(boxes)
         # import pdb; pdb.set_trace()
-        for i in range(100):
-            ih, iw, image, obj_count = sess.run([var_dict[k] for k in  ['ih', 'iw', 'images', 'num_objects']]) #['images', 'labels',
-            print ih, iw, image.shape, obj_count
-        train_results = sess.run(train_targets)
+        # for i in range(100):
+        #     ih, iw, image, obj_count = sess.run([var_dict[k] for k in  ['ih', 'iw', 'images', 'num_objects']]) #['images', 'labels', 
+        #     print ih, iw, image.shape, obj_count
+        # import pdb; pdb.set_trace()
+        train_results, p = sess.run([train_targets, var_dict['print']])
         for i, result in enumerate(train_results):
-            import pdb; pdb.set_trace()
             print('Model {} has loss {}'.format(i, result['loss']))
         return train_results
 
@@ -133,31 +133,28 @@ class CocoYolo():
             'cfg_dataset': {'imagenet': 0}
             '
         """
-        params['validation_params'] = {
-            'topn_val': {
-                'data_params': {
-                    # ImageNet data provider arguments
-                    'func': COCO,
-                    'group': 'val',
-                    # TFRecords (super class) data provider arguments
-                    'batch_size': self.Config.batch_size,
-                    'n_threads': 4,
-                },
-                'queue_params': {
-                    'queue_type': 'fifo',
-                    'batch_size': self.Config.batch_size,
-                    'seed': self.Config.seed,
-                    'capacity': self.Config.batch_size * 10,
-                    'min_after_dequeue': self.Config.batch_size * 5,
-                },
-                'targets': {
-                    'func': self.in_top_k,
-                },
-                'num_steps': self.Config.val_steps,
-                'agg_func': self.agg_mean, 
-                'online_agg_func': self.online_agg_mean,
-            }
-        }
+        # params['validation_params'] = {
+        #     'topn_val': {
+        #         'data_params': {
+        #             # ImageNet data provider arguments
+        #             'func': COCO,
+        #             'group': 'val',
+        #             # TFRecords (super class) data provider arguments
+        #             'batch_size': self.Config.batch_size,
+        #             'n_threads': 4,
+        #         },
+        #         'queue_params': {
+        #             'queue_type': 'fifo',
+        #             'batch_size': self.Config.batch_size,
+        #             'seed': self.Config.seed,
+        #             'capacity': self.Config.batch_size * 10,
+        #             'min_after_dequeue': self.Config.batch_size * 5,
+        #         },
+        #         'num_steps': self.Config.val_steps,
+        #         'agg_func': self.agg_mean, 
+        #         'online_agg_func': self.online_agg_mean,
+        #     }
+        # }
 
         """
         model_params defines the model i.e. the architecture that 
@@ -193,15 +190,14 @@ class CocoYolo():
             var_dict = outputs
 
             predicts = outputs['bboxes']
-            gt_boxes = tf.reshape(tf.cast(outputs['boxes'], tf.int32), [1, -1, 4])
-            labels = outputs['labels']
+            gt_boxes = tf.reshape(tf.cast(outputs['boxes'], tf.int32), [1, -1, 5])
             num_objects = outputs['num_objects']
-            loss, nonsense = self.Config.ytn.loss(predicts, gt_boxes, num_objects)
-            import pdb; pdb.set_trace()
+            loss, nonsense, p = self.Config.ytn.loss(predicts, gt_boxes, num_objects)
+            var_dict['print'] = p
             return loss + 0.0*tf.reduce_sum(outputs['logits'])
         
         params['loss_params'] = {
-            'targets': ['labels'],
+            'targets': ['boxes'],
             'agg_func': tf.reduce_mean,
             'loss_per_case_func': loss_wrapper,
             'loss_per_case_func_params' : {'_outputs': 'outputs',

@@ -343,10 +343,12 @@ class YoloTinyNet(Net):
     noobject_loss = tf.constant(0, tf.float32)
     coord_loss = tf.constant(0, tf.float32)
     loss = [0, 0, 0, 0]
+    objects_num = tf.reshape(objects_num, [-1])
     for i in range(self.batch_size):
       predict = predicts[i, :, :, :]
       label = labels[i, :, :]
       object_num = objects_num[i]
+      p = tf.Print(objects_num, [object_num, tf.shape(label), tf.shape(predict)], message = 'Number of instances')
       nilboy = tf.ones([7,7,2])
       args = [tf.constant(0), object_num, [class_loss, object_loss, noobject_loss, coord_loss], predict, label, nilboy]
       tuple_results = tf.while_loop(self.cond1, self.body1, args)
@@ -362,4 +364,4 @@ class YoloTinyNet(Net):
     tf.summary.scalar('coord_loss', loss[3]/self.batch_size)
     tf.summary.scalar('weight_loss', tf.add_n(tf.get_collection('losses')) - (loss[0] + loss[1] + loss[2] + loss[3])/self.batch_size )
 
-    return tf.add_n(tf.get_collection('losses'), name='total_loss'), nilboy
+    return tf.add_n(tf.get_collection('losses'), name='total_loss'), nilboy, p
