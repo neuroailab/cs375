@@ -308,7 +308,7 @@ class TF_OVA_Classifier(TF_Optimizer):
   
     def decision_function(self, test_data):
         #returns what are effectively the margins (for a linear classifier)
-        return opt.TF_Optimizer.predict(self, test_data)
+        return TF_Optimizer.predict(self, test_data)
     
     def predict(self, test_data):
         #use the one-vs-all rule for multiclass prediction. 
