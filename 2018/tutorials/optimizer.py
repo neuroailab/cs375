@@ -263,3 +263,56 @@ class TF_Optimizer(object):
         else:
             return np.row_stack(preds), np.row_stack(label_output)
 
+
+def binarize_labels(labels):
+    """takes discrete-valued labels and binarizes them into {-1, 1}-value format
+       returns:
+           binarized_labels: of shape (num_stimuli, num_categories)
+           unique_labels: actual labels indicating order of first axis in binarized_labels
+    """
+    unique_labels = np.unique(labels)
+    num_classes = len(unique_labels)
+    binarized_labels = np.array([2 * (labels == c) - 1 for 
+                                    c in unique_labels]).T.astype(int)
+    return binarized_labels, unique_labels
+    
+
+class TF_OVA_Classifier(TF_Optimizer):
+    """
+    Subclass of TFOptimizer for use with categorizers. Basically, this class 
+    handles data binarization (in the fit method) and un-binarization 
+    (in the predict method), so that we can use the class with the function:
+    
+         train_and_test_scikit_classifier
+    
+    that we've previously defined. 
+    
+    The predict method here implements a one-vs-all approach for multi-class problems.
+    """
+    
+    def fit(self, train_data, train_labels):
+        #binarize labels
+        num_features = train_data.shape[1]
+        binarized_labels, classes_ = binarize_labels(train_labels)
+        #set .classes_ attribute, since this is needed by train_and_test_scikit_classifier
+        self.classes_ = classes_
+        num_classes = len(classes_)
+        #pass number of features and classes to the model construction 
+        #function that will be called when the fit method is called
+        self.model_kwargs['num_features'] = num_features
+        self.model_kwargs['num_classes'] = num_classes
+        #now actually call the optimizer fit method
+        TF_Optimizer.fit(self, 
+                         train_data=train_data, 
+                         train_labels=binarized_labels)
+  
+    def decision_function(self, test_data):
+        #returns what are effectively the margins (for a linear classifier)
+        return opt.TF_Optimizer.predict(self, test_data)
+    
+    def predict(self, test_data):
+        #use the one-vs-all rule for multiclass prediction. 
+        preds = self.decision_function(test_data)
+        preds = np.argmax(preds, axis=1)
+        classes_ = self.classes_
+        return classes_[preds]
