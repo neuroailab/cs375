@@ -183,11 +183,9 @@ class TF_Optimizer(object):
                                   shuffle=shuffle,
                                   shuffle_seed=shuffle_seed,
                                   pad=pad,
-                                  processors=data_processors,
-                                  **kwargs)
+                                  processors=data_processors)
         return data_reader
 
-        
     def fit(self, train_data, train_labels, report_freq=100):
         if not isinstance(train_data, tf.Tensor):
             data_reader = self.get_data(train_data,
@@ -302,7 +300,7 @@ class TF_OVA_Classifier(TF_Optimizer):
         self.model_kwargs['num_features'] = num_features
         self.model_kwargs['num_classes'] = num_classes
         #now actually call the optimizer fit method
-        TF_Optimizer.fit(self, 
+        super(TF_OVA_Classifier, self).fit( 
                          train_data=train_data, 
                          train_labels=binarized_labels)
   
