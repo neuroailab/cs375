@@ -81,3 +81,7 @@ def split_half_correlation(datas_by_trial,
         corrvals.append(corrval)
         
     return spearman_brown(np.array(corrvals), 2)
+
+
+def pluck(L, key):
+    return [l.get(key) for l in L]
