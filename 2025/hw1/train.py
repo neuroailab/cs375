@@ -1,5 +1,7 @@
 """
-CS375 / Psych 279 Assugment 1
+Student Name:
+
+CS375 / Psych 279 Homework 1
 
 You have to finish the following tasks:
 - Implement the AlexNet model definition

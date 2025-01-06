@@ -21,9 +21,9 @@ In this assignment, you will implement, train, and visualize the behavior of an 
 
 The **original AlexNet** architecture (as introduced in the paper) consists of:
 
-1. **Conv1**: 96 kernels of size 11×11, stride 4, followed by **ReLU**  
+1. **Conv1**: 64 kernels of size 11×11, stride 4, followed by **ReLU**  
 2. **Max Pooling**: 3×3 window, stride 2  
-3. **Conv2**: 256 kernels of size 5×5, padding 2, followed by **ReLU**  
+3. **Conv2**: 192 kernels of size 5×5, padding 2, followed by **ReLU**  
 4. **Max Pooling**: 3×3 window, stride 2  
 5. **Conv3**: 384 kernels of size 3×3, padding 1, followed by **ReLU**  
 6. **Conv4**: 384 kernels of size 3×3, padding 1, followed by **ReLU**  
@@ -90,7 +90,7 @@ python -c "import torch; import torchvision; import numpy; import matplotlib; im
 
 ### 1. ImageNet Dataset
 
-For this assignment, you will use the **ImageNet** dataset. **ImageNet** is large (~1.2 million training images, ~50k validation images) and requires substantial disk space (hundreds of gigabytes). You can request access and download it from the official website:
+For this assignment, you will use the **ImageNet** dataset. **ImageNet** is large (~1.2 million training images, ~50k validation images) and requires substantial disk space (290GB). You can request access and download it from the official website:
 
 - [ImageNet Homepage](http://www.image-net.org/)  
 - Follow their instructions to create an account and request access to the Large Scale Visual Recognition Challenge (ILSVRC) 2012 dataset.  
@@ -100,9 +100,9 @@ For this assignment, you will use the **ImageNet** dataset. **ImageNet** is larg
 
 You will also need the **sine grating images** to measure how different orientations (angles) and spatial frequencies affect the responses of your learned filters. Download these images from:
 
-- [Sine Grating Images (OSF Link)](https://osf.io/64qv3/#:~:text=sine_grating_images_20190507)
+- [Sine Grating Images (OSF Link)](https://osf.io/64qv3/#:~:text=sine_grating_images_20190507) - specifically download the directory called `sine_grating_images_20190507`.
 
-Extract them into a folder named `sine_grating_images` within your project directory.
+Extract them into a directory named `sine_grating_images` within your project directory. (Specifically you should have several images directory in `sine_grating_images`, not another sub directory named  `sine_grating_images_20190507`).
 
 ---
 
@@ -137,7 +137,7 @@ You should be able to train the AlexNet model at about 1 epoch per hour on a mod
 - In the `forward` method of the `AlexNet` class, write the code that **pushes the input** through the model layers.  
 
 **Details**  
-- Pass the input through your `features` sub-network, then flatten the output and pass it through your `classifier`.  
+- Pass the input through your `features` sub-network (the series of convolutional layers that embeds the image), then flatten the output and pass it through your `classifier` (the series of linear layers at the end that classifies the embedding). You do not have to impelment it as these two specific sub networks, this is simply a helpful convention.
 - Return the final tensor of shape `[batch_size, num_classes]`.  
 
 ---
@@ -155,6 +155,8 @@ You should be able to train the AlexNet model at about 1 epoch per hour on a mod
   4. **Update** parameters via `optimizer.step()`.  
 - Make sure to accumulate the training loss correctly.  
 
+You can find a reference implementation of a PyTorch training loop here: (https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html)[https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html].
+
 ---
 
 ## 4. Implement the **Evaluation Function**
@@ -168,7 +170,7 @@ You should be able to train the AlexNet model at about 1 epoch per hour on a mod
   1. Forward pass the images.  
   2. Compute the loss.  
   3. Compute the top-1 accuracy by comparing the model’s predictions to the labels.  
-- Return the overall accuracy (in percentage) and the average loss across the entire dataset.  
+- Return the overall accuracy (in percentage) and the average loss across the entire dataset. 
 
 ---
 
@@ -199,24 +201,24 @@ You should be able to train the AlexNet model at about 1 epoch per hour on a mod
 5. **You must create a figure** for each kernel that includes three subplots:  
    - **Response vs. Orientation**  
    - **Response vs. Spatial Frequency**  
-   - **A small visualization** of the kernel (see **plot_conv1_kernels** as a reference).  
-6. **You mus compute** the circular variance for each filter using the provided method and store it in a list which will be used for plotting.
+   - **A visualization** of the kernel itself (see **plot_conv1_kernels** as a reference).  
+6. **You must compute** the circular variance for each filter using the provided method and store it in a list which will be used for plotting.
 7, **Save** each figure into `out/kernel_responses_{epoch}/`.  
 
 In this section you will compute the **circular variance** of each filter’s responses **with respect to orientation** to measure how orientation-selective the filter is. We provide a helper function `compute_circular_variance`, but you should still understand the math behind it. In short, the **circular variance** (CV) is defined:
 
-\[
+$$
 \text{CV} = 1 \;-\; \frac{
    \sqrt{\Bigl(\sum_i r_i \cos(\theta_i)\Bigr)^2 + \Bigl(\sum_i r_i \sin(\theta_i)\Bigr)^2}
 }{
    \sum_i r_i
 }
-\]
+$$
 
 where:
-- \(r_i \ge 0\) is the neuron’s response to orientation \(\theta_i\) (in radians).
-- \(\sum_i r_i \cos(\theta_i)\) and \(\sum_i r_i \sin(\theta_i)\) are the *x*- and *y*-components of the resultant vector, respectively.
-- \(\sum_i r_i\) is the total response (i.e., sum of all \(r_i\) values).
+- $(r_i \ge 0)$ is the neuron’s response to orientation $(\theta_i)$ (in radians).
+- $(\sum_i r_i \cos(\theta_i))$ and $(\sum_i r_i \sin(\theta_i))$ are the *x*- and *y*-components of the resultant vector, respectively.
+- $(\sum_i r_i)$ is the total response (i.e., sum of all $(r_i)$ values).
 
 A **CV** near **0** indicates that the neuron is highly *directional* (i.e., has a strong preference for one orientation), while a **CV** near **1** indicates a *spread-out* response across orientations (i.e., no clear preference).
 
@@ -251,12 +253,11 @@ Please make sure to **fill in** all areas marked with `### TODO` in the provided
 2. **Report**  
    - Provide a PDF or Markdown report that includes:  
      - A brief explanation of the code you implemented
-     - An image of the accuracy, loss and circular variance plot, along with a description of the final accuracy values. Observer the trends in loss decrease, accuracy increase and kernel
-     circular variance. Specifically remark on when during the training do the filters seem to get tuned for direciton selectivity.
-     - An image of the kernel visualziation plot of the final layer along with a brief description of some qualitative properties of some of the filters.
+     - An image of the accuracy, loss and circular variance plot, along with a description of the final accuracy values. Observer the trends in loss decrease, accuracy increase and kernel circular variance. Specifically remark on when during the training do the filters seem to get tuned for direciton selectivity.
+     - An image of the kernel visualziation plot of the first layer along with a brief description of some qualitative properties of some of the filters.
      - Visualizations of 3 individual filters of your choice and their rotation and frequency selectivity plots. Pick filters that illustrate a clear bias and describe what they seem to be selective for.
 
-You will submit both files on the upload link on Canvas.
+You will submit both files on the submission link on Canvas.
 
 ---
 
