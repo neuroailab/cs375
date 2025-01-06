@@ -278,9 +278,13 @@ def main():
     weight_decay = 0.0
     seed = 1110
 
-    # Device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cuda:5")
+    # Select device
+    if torch.backends.mps.is_available():  # Check for Apple Silicon (MPS)
+        device = torch.device("mps")  # Metal Performance Shaders (MPS) on macOS
+    elif torch.cuda.is_available():  # Check for CUDA availability
+        device = torch.device("cuda")
+    else:  # Fallback to CPU
+        device = torch.device("cpu")
     print(f"Using device: {device}")
 
     # Reproducibility

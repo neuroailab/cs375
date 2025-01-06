@@ -247,17 +247,19 @@ Please make sure to **fill in** all areas marked with `### TODO` in the provided
 
 ## Submission Instructions
 
-1. **Code**  
-   - Submit your modified `train.py` file with all tasks completed. Include your name at the top of the assigment.
+1. **Code**
+   - [10 Points] Submit your modified `train.py` file with all tasks completed. Include your name at the top of the assigment.
 
-2. **Report**  
+2. **Report**
    - Provide a PDF or Markdown report that includes:  
-     - A brief explanation of the code you implemented
-     - An image of the accuracy, loss and circular variance plot, along with a description of the final accuracy values. Observer the trends in loss decrease, accuracy increase and kernel circular variance. Specifically remark on when during the training do the filters seem to get tuned for direciton selectivity.
-     - An image of the kernel visualziation plot of the first layer along with a brief description of some qualitative properties of some of the filters.
-     - Visualizations of 3 individual filters of your choice and their rotation and frequency selectivity plots. Pick filters that illustrate a clear bias and describe what they seem to be selective for.
+     - [2 Points] A brief explanation of the code you implemented
+     - [3 Points] An image of the accuracy, loss and circular variance plot, along with a description of the final accuracy values. Observer the trends in loss decrease, accuracy increase and kernel circular variance. Specifically remark on when during the training do the filters seem to get tuned for direciton selectivity.
+     - [2 Points] An image of the kernel visualziation plot of the first layer along with a brief description of some qualitative properties of some of the filters.
+     - [3 Points] Visualizations of 3 individual filters of your choice and their rotation and frequency selectivity plots. Pick filters that illustrate a clear bias and describe what they seem to be selective for.
 
 You will submit both files on the submission link on Canvas.
+
+You are allowed to use any tools you wish (including LLMs) to help with this assigment, but you must work by yourself. If you encounter any issues with setting up the training on your computer please contact the course staff sooner rather than later.
 
 ---
 
