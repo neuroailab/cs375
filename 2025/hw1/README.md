@@ -213,7 +213,7 @@ You can find a reference implementation of a PyTorch training loop [here](https:
 In this section you will compute the **circular variance** of each filter’s responses **with respect to orientation** to measure how orientation-selective the filter is. We provide a helper function `compute_circular_variance`, but you should still understand the math behind it. In short, the **circular variance** (CV) is defined:
 
 $$
-\text{CV} = 1 \;-\; \frac{
+\text{CV} = 1 - \frac{
    \sqrt{\Bigl(\sum_i r_i \cos(\theta_i)\Bigr)^2 + \Bigl(\sum_i r_i \sin(\theta_i)\Bigr)^2}
 }{
    \sum_i r_i
