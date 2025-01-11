@@ -4,9 +4,9 @@
 
 ## Overview
 
-In this assignment, you will implement, train, and visualize the behavior of an AlexNet convolutional neural network (CNN) using [PyTorch](https://pytorch.org/). You will visualize the kernels of the firs layer of the neural network and analyze their response patterns. You will replicate some basic findings of classical work by Hubel and Wiesel in silico by measuring orientation selectivinty of several artificial neurons early in the model. Specifically you will:
+In this assignment, you will implement, train, and visualize the behavior of an AlexNet convolutional neural network (CNN) using [PyTorch](https://pytorch.org/). You will visualize the kernels of the first layer of the neural network and analyze their response patterns. You will replicate some basic findings of classical work by Hubel and Wiesel in silico by measuring orientation selectivity of several artificial neurons early in the model. Specifically, you will:
 
-1. **Implement the AlexNet model** and understanding its architecture.  
+1. **Implement the AlexNet model** and understand its architecture.  
 2. **Implement a training loop** capable of training the network on the [ImageNet dataset](http://www.image-net.org/).  
 3. **Measure kernel responses** for various spatial frequencies and orientations of sinusoidal grating stimuli.  
 4. **Visualize the learned kernels** in the first layer of your model.  
@@ -38,10 +38,10 @@ After these **feature extraction** layers, the spatially reduced feature maps ar
 
 In practice, there are slightly different configurations (e.g., how channels are split for two GPUs). For this assignment, you should implement a **single-GPU** version in which the above layers are sequentially defined. Use **ReLU** after each conv or fully connected layer (except the final classification layer). Ensure your final layer outputs **num_classes** logits.
 
-You are going to implement a version of AlexNet and train it on ImageNet. You will evaluate the model during trianing and observer as the accuracy of the model improves.
+You are going to implement a version of AlexNet and train it on ImageNet. You will evaluate the model during training and observer as the accuracy of the model improves.
 
 ### Sine Grating Stimuli
-We will provide you with a set of special stimuli to run thoguh your neural netowrk and measure specific properties that individual neurons might be storngly responding to. These stimuli consist of striped patterns with various orientation angles and frequencies.
+We will provide you with a set of special stimuli to run through your neural network and measure specific properties that individual neurons might be strongly responding to. These stimuli consist of striped patterns with various orientation angles and frequencies.
 
 You will run these stimul through your model during training and plot the the activations of individual kernel filters to them, in order to determine the specific orientation and frequency tuning (if any) of the kernels.
 
@@ -51,8 +51,10 @@ You will run these stimul through your model during training and plot the the ac
 
 To ensure a clean, reproducible environment, we recommend using **micromamba** (a lightweight package manager similar to conda). Below are the steps to create a dedicated Python environment named `cs375` and install the required libraries.
 
+(Note: if you already have conda installed on your system you can simply use that instead. Skip the micromamba installation and run all other commands with conda instead of micromamba).
+
 1. **Install micromamba**  
-   - Refer to the [micromamba documentation](https://mamba.readthedocs.io/en/latest/installation.html#micromamba) for instructions on installing micromamba for your operating system.
+   - Refer to the [micromamba documentation](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) for instructions on installing micromamba for your operating system.
 
 2. **Create a new environment** called `cs375` (you can change the Python version if needed):
 
@@ -96,6 +98,9 @@ For this assignment, you will use the **ImageNet** dataset. **ImageNet** is larg
 - Follow their instructions to create an account and request access to the Large Scale Visual Recognition Challenge (ILSVRC) 2012 dataset.  
 - Once you have the files (`ILSVRC2012_devkit_t12.tar.gz`, `ILSVRC2012_img_train.tar` and `ILSVRC2012_img_val.tar`) place them in a directory and set it as the dataset path inside `train.py`.
 
+**UPDATE:**
+Due to storage concerns, we have prepared a 10% subset of the full ImageNet dataset which you can find [here](https://storage.cloud.google.com/cs375/imagenet-mini.zip). This should require no more than 50GB in total (including the temporary scratch space you need to unzip the files). While we still strongly encourage you to use the full dataset for a more authentic experience, we will allow submissions with this reduced dataset.
+
 ### 2. Sine Grating Images
 
 You will also need the **sine grating images** to measure how different orientations (angles) and spatial frequencies affect the responses of your learned filters. Download these images from:
@@ -111,7 +116,7 @@ Extract them into a directory named `sine_grating_images` within your project di
 
 Below we outline the tasks you **must complete** for this assignment. Please refer to the provided code template in the file `train.py` to see exactly where each piece should be implemented. **You are required** to fill in the missing parts as specified, ensuring that your final code runs correctly and produces the requested outputs.
 
-You should be able to train the AlexNet model at about 1 epoch per hour on a modern laptop (or signifficantly faster on any computer with a GPU). You should be able to train out the model for a total of 30 epochs and obtain a model with relatively storng performance. The trianing runs will take quite a bit of time so we suggest you get started early and leave your computer running overnight to train the model. 
+You should be able to train the AlexNet model at about 1 epoch per hour on a modern laptop (or significantly faster on any computer with a GPU). You should be able to train out the model for a total of 30 epochs and obtain a model with relatively strong performance. The trianing runs will take quite a bit of time so we suggest you get started early and leave your computer running overnight to train the model. 
 
 (If your specific hardware constraints prevent you from training the model for this long come see the course staff asap and we will figure something out).
 
@@ -137,7 +142,7 @@ You should be able to train the AlexNet model at about 1 epoch per hour on a mod
 - In the `forward` method of the `AlexNet` class, write the code that **pushes the input** through the model layers.  
 
 **Details**  
-- Pass the input through your `features` sub-network (the series of convolutional layers that embeds the image), then flatten the output and pass it through your `classifier` (the series of linear layers at the end that classifies the embedding). You do not have to impelment it as these two specific sub networks, this is simply a helpful convention.
+- Pass the input through your `features` sub-network (the series of convolutional layers that embeds the image), then flatten the output and pass it through your `classifier` (the series of linear layers at the end that classifies the embedding). You do not have to implement it as these two specific sub networks, this is simply a helpful convention.
 - Return the final tensor of shape `[batch_size, num_classes]`.  
 
 ---
@@ -253,8 +258,8 @@ Please make sure to **fill in** all areas marked with `### TODO` in the provided
 2. **Report**
    - Provide a PDF or Markdown report that includes:  
      - [2 Points] A brief explanation of the code you implemented
-     - [3 Points] An image of the accuracy, loss and circular variance plot, along with a description of the final accuracy values. Observer the trends in loss decrease, accuracy increase and kernel circular variance. Specifically remark on when during the training do the filters seem to get tuned for direciton selectivity.
-     - [2 Points] An image of the kernel visualziation plot of the first layer along with a brief description of some qualitative properties of some of the filters.
+     - [3 Points] An image of the accuracy, loss and circular variance plot, along with a description of the final accuracy values. Observe the trends in loss decrease, accuracy increase and kernel circular variance. Specifically remark on when during the training do the filters seem to get tuned for direction selectivity.
+     - [2 Points] An image of the kernel visualization plot of the first layer along with a brief description of some qualitative properties of some of the filters.
      - [3 Points] Visualizations of 3 individual filters of your choice and their rotation and frequency selectivity plots. Pick filters that illustrate a clear bias and describe what they seem to be selective for.
 
 You will submit both files on the submission link on Canvas.
