@@ -160,7 +160,7 @@ You should be able to train the AlexNet model at about 1 epoch per hour on a mod
   4. **Update** parameters via `optimizer.step()`.  
 - Make sure to accumulate the training loss correctly.  
 
-You can find a reference implementation of a PyTorch training loop here: (https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html)[https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html].
+You can find a reference implementation of a PyTorch training loop [here](https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html).
 
 ---
 
