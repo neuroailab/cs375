@@ -37,7 +37,7 @@ Below is the provided implementation of the Barcode dataset class. **Be sure to 
 
 ---
 
-## A. Barcode Dataset Code
+### Barcode Dataset Code
 
 ```python
 import os
@@ -140,9 +140,7 @@ Here is an exmaple of a barcode produced by this dataset:
 
 Can you tell what the label is supose to be?
 
-## B. Modified AlexNet for Barcode Classification
-
-## B. Modified AlexNet for Barcode Classification
+### Modified AlexNet for Barcode Classification
 
 For this part of the assignment, you will repurpose your existing HW1 training pipeline to work with the Barcode dataset rather than ImageNet. Follow these key steps:
 
@@ -184,26 +182,21 @@ After making these modifications, run your updated training script to train the 
 
 By following these instructions, you'll be well-prepared to train your AlexNet model on the Barcode dataset and proceed to later parts of the assignment.
 
-## C. Neural Fitting with the NSD
+### Neural Fitting with the NSD
 
-In this part of the assignment, you will investigate how well the intermediate representations from your modified AlexNet models can predict fMRI responses measured during natural scene viewing. This analysis is based on the Natural Scenes Dataset (NSD; Allen et al., 2021). The NSD contains 1,000 shared natural scene images, each presented three times to subjects, and corresponding fMRI data recorded from several brain regions. The images are high-resolution natural scenes, while the fMRI recordings were taken from visual areas (V1, V2, V3, V4) and additional higher-order regions organized into upper streams—namely, the upper ventral, upper parietal, and upper lateral areas.
+In this part of the assignment, you will investigate how well the intermediate representations from your modified AlexNet models can predict fMRI responses measured during natural scene viewing. This analysis is based on the Natural Scenes Dataset (NSD; Allen et al., 2021). The NSD contains 1,000 shared natural scene images, each presented three times to subjects, and corresponding fMRI data recorded from several brain regions. The images are high-resolution natural scenes, while the fMRI recordings were taken from visual areas (V1, V2, V3, V4) and additional higher-order regions organized into upper streams—namely, the upper ventral, upper parietal, and upper lateral areas. 
+You will find starter code for this in the file called `nsd.py` Below, we explain each major block of the provided file and describe in detail the TODOs that you must implement.
 
 ### NSD Dataset and Brain Regions
 
 #### Natural Images:
 The NSD includes 2,000 train and 1,000 test natural scene images that have been preprocessed and are available as RGB images. The images depict real-world scenes and are used to study visual processing under naturalistic conditions.
 #### Brain Regions:
-You will be examining the following brain regions: V1, V2, V3, V4: These are early visual areas. V1 is the primary visual cortex that processes basic visual information such as edges and orientations. V2–V4 are successive stages that process more complex features. Additionally you will study these three upper region: Ventral (Upper Ventral): Often associated with object recognition and form representation. Parietal (Upper Parietal): Related to spatial attention and the processing of spatial relations. Lateral (Upper Lateral): Involved in processing dynamic aspects and object motion, among other functions.
-
+You will be examining the following brain regions: V1, V2, V3, V4, and the upper ventral, lateral, and parietal areas. V1, the primary visual cortex, processes basic visual information such as edges and orientations, while V2 through V4 are successive stages that handle increasingly complex features. Additionally, you will study three upper regions: the upper ventral area, which is associated with object recognition and form representation; the upper parietal area, which plays a role in spatial attention and processing spatial relations; and the upper lateral area, which is involved in processing dynamic aspects and object motion, among other functions.
 
 #### Data Preprocessing and Feature Extraction
 You will load the fMRI data for the four visual areas from the provided NetCDF files. A helper function (e.g., load_fmri(file_path)) is provided for this purpose. This function should average over the time_bin dimension and across repeats so that, for each brain region, you obtain a 2D array of shape (1000, n_neuroid)—that is, 1,000 images each for train, val and test by the number of recorded neuroids (voxels). You will join the trian and val images into a single trian set.
-You will then create a dictionary (e.g., fmri_dict) that maps each region (keys: 'V1', 'V2', 'V3', 'V4') to its corresponding averaged fMRI response array.
-
-
-## Mapping Procedure: Detailed Instructions a
-
-In this section you will map the activations from your modified AlexNet models to fMRI responses from the NSD data using ridge regression. You will find starter code for this in the file called `nsd.py` Below, we explain each major block of the provided file and describe in detail the TODOs that you must implement.
+You will then create a dictionary (e.g., fmri_dict) that maps each region (keys: 'V1', 'V2', 'V3', 'V4', 'ventral', 'parietal', 'lateral') to its corresponding averaged fMRI response array.
 
 ---
 
