@@ -20,6 +20,22 @@ Evaluate and interpret the mapping correlations between the model features and b
 
 ---
 
+Before You Begin:
+Activate the cs375 environment using micromamba by running:
+
+```bash
+micromamba activate cs375
+```
+Then, install the additional required packages with:
+
+```bash
+pip install pandas xarray scipy scikit-learn gdown
+```
+
+This ensures you have all the necessary tools to run the code successfully.
+
+---
+
 ## Background
 
 ### AlexNet Recap
@@ -191,6 +207,7 @@ You will find starter code for this in the file called `nsd.py` Below, we explai
 
 #### Natural Images:
 The NSD includes 2,000 train and 1,000 test natural scene images that have been preprocessed and are available as RGB images. The images depict real-world scenes and are used to study visual processing under naturalistic conditions.
+
 #### Brain Regions:
 You will be examining the following brain regions: V1, V2, V3, V4, and the upper ventral, lateral, and parietal areas. V1, the primary visual cortex, processes basic visual information such as edges and orientations, while V2 through V4 are successive stages that handle increasingly complex features. Additionally, you will study three upper regions: the upper ventral area, which is associated with object recognition and form representation; the upper parietal area, which plays a role in spatial attention and processing spatial relations; and the upper lateral area, which is involved in processing dynamic aspects and object motion, among other functions.
 
