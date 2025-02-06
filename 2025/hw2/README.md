@@ -174,36 +174,41 @@ For this part of the assignment, you will repurpose your existing HW1 training p
    - **Binary Cross Entropy Loss Equation:**  
      The binary cross-entropy (BCE) loss for a single sample is defined as:
      
-     \[
+     $
      \text{BCE}(y, \hat{y}) = -\frac{1}{N} \sum_{i=1}^{N} \left[ y_i \log\bigl(\sigma(\hat{y}_i)\bigr) + (1 - y_i) \log\bigl(1 - \sigma(\hat{y}_i)\bigr) \right]
-     \]
+     $
      
      where:
      
-     - \( N = 32 \) is the number of bits,
-     - \( y_i \) is the ground truth label for the \( i^\text{th} \) bit (0 or 1),
-     - \( \hat{y}_i \) is the model's raw output (logit) for the \( i^\text{th} \) bit,
-     - \( \sigma(\cdot) \) denotes the sigmoid function, which converts logits into probabilities.
+     - $N = 32$ is the number of bits,
+     - $y_i$ is the ground truth label for the $ i^\text{th} $ bit (0 or 1),
+     - $\hat{y}_i$ is the model's raw output (logit) for the $ i^\text{th}$ bit,
+     - $\sigma(\cdot)$ denotes the sigmoid function, which converts logits into probabilities.
      
    - **PyTorch Implementation:**  
      PyTorch already provides an implementation of this loss via `nn.BCEWithLogitsLoss`, which combines the sigmoid activation and the binary cross-entropy loss into one stable function.
 
 4. **Change the Model Save File Name:**
    - **Update the Save File Name:**  
-     Ensure that you update the model save file name in your training script. This change will prevent you from accidentally overwriting your previous ImageNet-trained model. For instance, you might choose to save your Barcode-trained model as `barcode_alexnet.pth` or another descriptive name that clearly reflects its purpose.
+     Ensure that you update the model save file name in your training script. This change will prevent you from accidentally overwriting your previous ImageNet-trained model. For instance, you might choose to save your Barcode-trained model as `barcode.pt`.
 
 **Training the Barcode AlexNet:**
 
 After making these modifications, run your updated training script to train the Barcode AlexNet model. Note that this task is generally easier than ImageNet classification, so the model should train much faster. However, note the number of epochs required to reach high performance. Also save the filter visualizaitons as with HW1.
 
-By following these instructions, you'll be well-prepared to train your AlexNet model on the Barcode dataset and proceed to later parts of the assignment.
 
-### Neural Fitting with the NSD
+## Neural Fitting with the NSD
 
 In this part of the assignment, you will investigate how well the intermediate representations from your modified AlexNet models can predict fMRI responses measured during natural scene viewing. This analysis is based on the Natural Scenes Dataset (NSD; Allen et al., 2021). The NSD contains 1,000 shared natural scene images, each presented three times to subjects, and corresponding fMRI data recorded from several brain regions. The images are high-resolution natural scenes, while the fMRI recordings were taken from visual areas (V1, V2, V3, V4) and additional higher-order regions organized into upper streams—namely, the upper ventral, upper parietal, and upper lateral areas. 
 You will find starter code for this in the file called `nsd.py` Below, we explain each major block of the provided file and describe in detail the TODOs that you must implement.
 
 ### NSD Dataset and Brain Regions
+
+#### Background on fMRI
+
+Functional Magnetic Resonance Imaging (fMRI) is a non-invasive neuroimaging technique that measures brain activity by detecting changes in blood oxygenation levels. During an fMRI scan, the brain is divided into small three-dimensional units called voxels—each representing a tiny cubic volume of tissue. These voxels capture the Blood Oxygen Level Dependent (BOLD) signal, which serves as an indirect proxy for neural activity. Unlike direct measurements of electrical signals, the BOLD signal reflects the hemodynamic response (i.e., blood flow changes) associated with neural activation, making each voxel akin to a pixel in a 3D image of the brain.
+
+Because the BOLD signal is affected not only by neuronal activity but also by various sources of physiological and instrumental noise (such as head motion, vascular differences, and scanner artifacts), the fMRI data are inherently noisy. To account for this noise in our analyses, we introduce the concept of a noise ceiling. The noise ceiling represents the maximum explainable variance in the fMRI measurements given their noise level. When mapping model predictions to fMRI responses, we normalize our predictions by dividing the coefficient of determination (R²) by the computed noise ceiling. This normalization yields a metric that reflects the fraction of the explainable variance captured by the model, allowing for a fairer comparison across different brain regions and subjects where noise levels may vary significantly.
 
 #### Natural Images:
 The NSD includes 2,000 train and 1,000 test natural scene images that have been preprocessed and are available as RGB images. The images depict real-world scenes and are used to study visual processing under naturalistic conditions.
@@ -220,7 +225,7 @@ You will then create a dictionary (e.g., fmri_dict) that maps each region (keys:
 ### 1. IMPORT LIBRARIES & SET GLOBAL VARS
 
 - **Purpose:**  
-  This block imports all necessary libraries (e.g., NumPy, Pandas, PyTorch, scikit-learn) and sets up some global variables. In particular, the `NCSNR_THRESHOLD` is defined to later select reliable voxels from the fMRI data.
+  This block imports all necessary libraries (e.g., NumPy, Pandas, PyTorch, scikit-learn) and sets up some global variables. In particular, the `NCSNR_THRESHOLD` (the noise ceiling threshold) is defined to later select reliable voxels from the fMRI data.
 
 ---
 
