@@ -109,6 +109,45 @@ You will also need the **sine grating images** to measure how different orientat
 
 Extract them into a directory named `sine_grating_images` within your project directory. (Specifically you should have several images directory in `sine_grating_images`, not another sub directory named  `sine_grating_images_20190507`).
 
+
+---
+
+
+## Hyperparameters
+
+To make training manageable, we use the following default hyperparameters and learning rate schedule:
+
+| Hyperparameter        | Default Value | Notes                                                            |
+|-----------------------|---------------|------------------------------------------------------------------|
+| **Epochs**            | `30`          |                                                                  |
+| **Batch size**        | `32`          | Small for compatibility; increase if hardware allows             |
+| **Number of workers** | `8`           | Moderate value; increase for faster data loading if supported    |
+| **Momentum**          | `0.9`         |                                                                  |
+| **Weight Decay**      | `0.0`         |                                                                  |
+| **Random Seed**       | `1110`        | Ensures reproducibility                                          |
+
+We use a simplified learning rate schedule to allow quicker training:
+
+```python
+def get_lr_for_epoch(epoch: int) -> float:
+    """
+    Learning rate schedule:
+    - Epochs  1–15: 0.01
+    - Epochs 16–25: 0.001
+    - Epochs 26–30: 0.0001
+    """
+    if epoch <= 15:
+        return 0.01
+    elif epoch <= 25:
+        return 0.001
+    else:
+        return 0.0001
+```
+
+This schedule gradually lowers the learning rate during training, enabling the model to converge more effectively. Initially, a higher learning rate helps rapidly explore the solution space, while progressively smaller learning rates refine the optimization and improve final performance.
+
+
+
 ---
 
 ## Assignment Details

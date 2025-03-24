@@ -272,8 +272,8 @@ def main():
 
     # Hyperparameters
     total_epochs = 30
-    batch_size = 256
-    num_workers = 128
+    batch_size = 32
+    num_workers = 8
     momentum = 0.9
     weight_decay = 0.0
     seed = 1110
