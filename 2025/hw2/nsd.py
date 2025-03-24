@@ -1,3 +1,10 @@
+# Parts of the data preparation and evaluation code are adapted from the NSD tutorial
+# written by Jacob Prince, July 24, 2024 (jacob.samuel.prince@gmail.com)
+# 
+# Thanks to the NSD team for providing the data and the tutorial!
+# Paper: https://doi.org/10.1038/s41593-021-00962-x
+
+
 #########################################
 # 1. IMPORT LIBRARIES & SET GLOBAL VARS #
 #########################################

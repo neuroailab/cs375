@@ -16,7 +16,7 @@ You will extend your work from HW1 by repurposing your AlexNet training pipeline
 Write a second script that loads the NSD images and their corresponding neural activation data, extracts embeddings from your trained AlexNet after several intermediate layers, and then fit these embeddings to the NSD neural activations using ridge regression. Finally, compute and report the coefficient of determination (r²) for each layer's fit.
 
 3. **Analyze the outcomes of the predicted brain responses:**
-Evaluate and interpret the mapping correlations between the model features and brain data. Compare the performance of different model variants—namely, the randomly initialized model, the ImageNet-trained model, and the Barcode-trained model—to determine which one best predicts the brain responses. Discuss how the representational similarity varies across layers and brain areas, and provide insights into why certain models or layers may align better with neural activity than others.
+Evaluate and interpret the mapping correlations between the model features and brain data. Compare the performance of different model variants—namely, the randomly initialized model, the ImageNet-trained model, and the Barcode-trained model—to determine which one best predicts the brain responses. Discuss how the representational similarity varies across layers and brain areas, and provide insights into why certain models or layers may align better with neural activity than others. In this assignment, we use functional Magnetic Resonance Imaging (fMRI)—a neuroimaging technique that measures brain activity by detecting changes in blood flow—to analyze neural responses. Specifically, we utilize data from the Natural Scenes Dataset (NSD), which provides fMRI recordings from human subjects viewing natural images.
 
 ---
 
@@ -150,11 +150,16 @@ class BarcodeDataset(Dataset):
         return torch.tensor(bits, dtype=torch.float32)
 ```
 
-Here is an exmaple of a barcode produced by this dataset:
+Here is an example of a barcode produced by this dataset:
 
 ![example barcodet](barcode1.png "Example Barcode")
 
-Can you tell what the label is supose to be?
+Can you tell what the label is supposed to be?
+
+When setting up the Barcode dataset, you should define the training dataset length to be 1 million samples (`length=1000000`) and the validation dataset length to 50,000 samples (`length=50000`). These sizes roughly match the ImageNet training and validation splits, facilitating a fair comparison between tasks.
+
+Additionally, ensure you define a unique and fixed set of 50,000 integer values for the validation set (`val_numbers`). These integers must remain constant and exclusive to validation, ensuring they never appear in the training dataset. This separation prevents data leakage and ensures that the validation performance accurately reflects the model’s generalization capability.
+
 
 ### Modified AlexNet for Barcode Classification
 
@@ -174,9 +179,9 @@ For this part of the assignment, you will repurpose your existing HW1 training p
    - **Binary Cross Entropy Loss Equation:**  
      The binary cross-entropy (BCE) loss for a single sample is defined as:
      
-     $
+     $$
      \text{BCE}(y, \hat{y}) = -\frac{1}{N} \sum_{i=1}^{N} \left[ y_i \log\bigl(\sigma(\hat{y}_i)\bigr) + (1 - y_i) \log\bigl(1 - \sigma(\hat{y}_i)\bigr) \right]
-     $
+     $$
      
      where:
      
@@ -194,13 +199,13 @@ For this part of the assignment, you will repurpose your existing HW1 training p
 
 **Training the Barcode AlexNet:**
 
-After making these modifications, run your updated training script to train the Barcode AlexNet model. Note that this task is generally easier than ImageNet classification, so the model should train much faster. However, note the number of epochs required to reach high performance. Also save the filter visualizaitons as with HW1.
+After making these modifications, run your updated training script to train the Barcode AlexNet model. Note that this task is generally easier than ImageNet classification, so the model should train much faster. However, note the number of epochs required to reach high performance. Also save the filter visualizations as with HW1.
 
 
 ## Neural Fitting with the NSD
 
 In this part of the assignment, you will investigate how well the intermediate representations from your modified AlexNet models can predict fMRI responses measured during natural scene viewing. This analysis is based on the Natural Scenes Dataset (NSD; Allen et al., 2021). The NSD contains 1,000 shared natural scene images, each presented three times to subjects, and corresponding fMRI data recorded from several brain regions. The images are high-resolution natural scenes, while the fMRI recordings were taken from visual areas (V1, V2, V3, V4) and additional higher-order regions organized into upper streams—namely, the upper ventral, upper parietal, and upper lateral areas. 
-You will find starter code for this in the file called `nsd.py` Below, we explain each major block of the provided file and describe in detail the TODOs that you must implement.
+You will find starter code for this in the file called `nsd.py`. Below, we explain each major block of the provided file and describe in detail the TODOs that you must implement.
 
 ### NSD Dataset and Brain Regions
 
@@ -211,13 +216,13 @@ Functional Magnetic Resonance Imaging (fMRI) is a non-invasive neuroimaging tech
 Because the BOLD signal is affected not only by neuronal activity but also by various sources of physiological and instrumental noise (such as head motion, vascular differences, and scanner artifacts), the fMRI data are inherently noisy. To account for this noise in our analyses, we introduce the concept of a noise ceiling. The noise ceiling represents the maximum explainable variance in the fMRI measurements given their noise level. When mapping model predictions to fMRI responses, we normalize our predictions by dividing the coefficient of determination (R²) by the computed noise ceiling. This normalization yields a metric that reflects the fraction of the explainable variance captured by the model, allowing for a fairer comparison across different brain regions and subjects where noise levels may vary significantly.
 
 #### Natural Images:
-The NSD includes 2,000 train and 1,000 test natural scene images that have been preprocessed and are available as RGB images. The images depict real-world scenes and are used to study visual processing under naturalistic conditions.
+This split of NSD includes 2,000 train and 1,000 test natural scene images that have been preprocessed and are available as RGB images. The images depict real-world scenes and are used to study visual processing under naturalistic conditions.
 
 #### Brain Regions:
 You will be examining the following brain regions: V1, V2, V3, V4, and the upper ventral, lateral, and parietal areas. V1, the primary visual cortex, processes basic visual information such as edges and orientations, while V2 through V4 are successive stages that handle increasingly complex features. Additionally, you will study three upper regions: the upper ventral area, which is associated with object recognition and form representation; the upper parietal area, which plays a role in spatial attention and processing spatial relations; and the upper lateral area, which is involved in processing dynamic aspects and object motion, among other functions.
 
 #### Data Preprocessing and Feature Extraction
-You will load the fMRI data for the four visual areas from the provided NetCDF files. A helper function (e.g., load_fmri(file_path)) is provided for this purpose. This function should average over the time_bin dimension and across repeats so that, for each brain region, you obtain a 2D array of shape (1000, n_neuroid)—that is, 1,000 images each for train, val and test by the number of recorded neuroids (voxels). You will join the trian and val images into a single trian set.
+You will load the fMRI data for the four visual areas from the provided NetCDF files. A helper function (e.g., load_fmri(file_path)) is provided for this purpose. This function should average over the time_bin dimension and across repeats so that, for each brain region, you obtain a 2D array of shape (1000, n_neuroid)—that is, 1,000 images each for train, val and test by the number of recorded neuroids (voxels). You will join the train and val images into a single train set.
 You will then create a dictionary (e.g., fmri_dict) that maps each region (keys: 'V1', 'V2', 'V3', 'V4', 'ventral', 'parietal', 'lateral') to its corresponding averaged fMRI response array.
 
 ---
@@ -468,3 +473,10 @@ Your assignment will be evaluated based on the following components:
 A total of **20 points** is available for this assigment.
 
 
+You will submit both files on the submission link on Canvas.
+
+You are allowed to use any tools you wish (including LLMs) to help with this assigment, but you must work by yourself. If you encounter any issues with setting up the training on your computer please contact the course staff sooner rather than later.
+
+---
+
+**Good luck with your implementation!** If you have any questions, please reach out via email to klemenk@stanford.edu.
