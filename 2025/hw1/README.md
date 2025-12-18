@@ -54,7 +54,7 @@ To ensure a clean, reproducible environment, we recommend using **micromamba** (
 (Note: if you already have conda installed on your system you can simply use that instead. Skip the micromamba installation and run all other commands with conda instead of micromamba).
 
 1. **Install micromamba**  
-   - Refer to the [micromamba documentation](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) for instructions on installing micromamba for your operating system.
+   - Refer to the [micromamba documentation](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) for instructions on installing micromamba for your operating system. If you already have conda or miniconda installed, you can skip this step and replace `micromamba` below with `conda`. 
 
 2. **Create a new environment** called `cs375` (you can change the Python version if needed):
 
