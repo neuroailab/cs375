@@ -103,11 +103,9 @@ Due to storage concerns, we have prepared a 10% subset of the full ImageNet data
 
 ### 2. Sine Grating Images
 
-You will also need the **sine grating images** to measure how different orientations (angles) and spatial frequencies affect the responses of your learned filters. Download these images from:
+You will also need the **sine grating images** to measure how different orientations (angles) and spatial frequencies affect the responses of your learned filters. Download these images from [Sine Grating Images](https://drive.google.com/file/d/1fdkQD2Uj5wgANdI5On3KrCpbxIMfANms/view).
 
-- [Sine Grating Images](https://drive.google.com/file/d/1fdkQD2Uj5wgANdI5On3KrCpbxIMfANms/view).
-
-Extract them into a directory named `sine_grating_images` within your project directory. (Specifically you should have several images directory in `sine_grating_images`, not another sub directory named  `sine_grating_images_20190507`).
+Extract them into a directory named `sine_grating_images` within your project directory. 
 
 
 ---
