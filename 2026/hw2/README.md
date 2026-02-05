@@ -331,15 +331,10 @@ You will then create a dictionary (e.g., fmri_dict) that maps each region (keys:
 - **Purpose:**  
   This section sets up three model instances:
   1. **Randomly Initialized Model:**  
-     - Instantiate and set to evaluation mode.
+     - Initialized and set to evaluation mode.
   2. **ImageNet Pretrained Model:**  
-     - Load the checkpoint for the ImageNet pretrained model.
-     - **TODO:**  
-       - Use `torch.load` to load the checkpoint.
-       - Replace the placeholder path (e.g., `"path/to/imagenet_checkpoint.pth"`) with the actual file location.
-       - Load the state dictionary using `model_loaded.load_state_dict(...)` and set the model to evaluation mode.
+     - Loaded from PyTorch and set to evaluation mode.
   3. **Barcode Model:**  
-     - Similarly, load the checkpoint for the barcode-trained model.
      - **TODO:**  
        - Use `torch.load` to load the barcode checkpoint.
        - Replace the placeholder path (e.g., `"path/to/barcode_checkpoint.pth"`) with the correct file location.
