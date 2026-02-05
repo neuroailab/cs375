@@ -25,6 +25,7 @@ import xarray as xr
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
+import torchvision.models
 
 from scipy.spatial.distance import squareform, pdist
 from scipy.cluster.hierarchy import fcluster
@@ -265,6 +266,36 @@ class AlexNet(nn.Module):
     pass
 
 
+class AlexNetImageNet(nn.Module):
+    """
+    Pretrained AlexNet from torchvision with intermediate feature extraction.
+    This is provided for you - do not modify.
+    """
+    def __init__(self):
+        super().__init__()
+        self.model = torchvision.models.alexnet(
+            weights=torchvision.models.AlexNet_Weights.IMAGENET1K_V1
+        )
+        self._features = {}
+
+        # Register hooks to capture intermediate activations
+        self.model.features[2].register_forward_hook(self._hook('conv_pool_after_layer2'))
+        self.model.features[5].register_forward_hook(self._hook('conv_pool_after_layer_5'))
+        self.model.features[12].register_forward_hook(self._hook('conv_pool_after_layer_12'))
+        self.model.classifier[2].register_forward_hook(self._hook('fc1'))
+        self.model.classifier[5].register_forward_hook(self._hook('fc2'))
+
+    def _hook(self, name):
+        def fn(module, input, output):
+            self._features[name] = output.flatten(1)
+        return fn
+
+    def forward(self, x):
+        self._features = {}
+        _ = self.model(x)
+        return self._features
+
+
 #########################################
 # 7. SET UP MODELS (RANDOM & PRETRAINED)#
 #########################################
@@ -276,12 +307,8 @@ device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
 model_random = AlexNet().to(device)
 model_random.eval()
 
-# Model loaded from an ImageNet checkpoint.
-model_loaded = AlexNet().to(device)
-### TODO: Replace the placeholder with the actual path to the ImageNet checkpoint.
-checkpoint = torch.load("path/to/imagenet_checkpoint.pth",
-                         map_location=device)
-model_loaded.load_state_dict(checkpoint['model_state_dict'])
+# ImageNet pretrained model (provided - uses torchvision weights)
+model_loaded = AlexNetImageNet().to(device)
 model_loaded.eval()
 
 # Model loaded from a barcode checkpoint.
